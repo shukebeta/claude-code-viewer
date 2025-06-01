@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { ChevronRight, PanelLeftClose } from 'lucide-react'
 import { ProjectList } from '../ProjectList/ProjectList'
 import { SessionList } from '../SessionList/SessionList'
@@ -6,6 +6,7 @@ import { useAppStore } from '@/store/appStore'
 
 export const Sidebar: React.FC = () => {
   const { sidebarCollapsed, toggleSidebar, selectedProjectPath } = useAppStore()
+  const [searchQuery, setSearchQuery] = useState('')
   
   if (sidebarCollapsed) {
     return (
@@ -96,14 +97,26 @@ export const Sidebar: React.FC = () => {
           padding: '8px 12px',
           background: 'var(--secondary)',
           borderRadius: '6px',
-          fontSize: '13px',
-          color: 'var(--muted-foreground)'
+          fontSize: '13px'
         }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <circle cx="11" cy="11" r="8"/>
             <path d="M21 21l-4.35-4.35"/>
           </svg>
-          <span>프로젝트 검색</span>
+          <input
+            type="text"
+            placeholder="프로젝트 검색"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{
+              background: 'none',
+              border: 'none',
+              outline: 'none',
+              width: '100%',
+              fontSize: '13px',
+              color: 'var(--foreground)'
+            }}
+          />
         </div>
       </div>
       
@@ -113,7 +126,7 @@ export const Sidebar: React.FC = () => {
         overflowY: 'auto',
         padding: '8px'
       }}>
-        <ProjectList />
+        <ProjectList searchQuery={searchQuery} />
       </div>
     </aside>
   )

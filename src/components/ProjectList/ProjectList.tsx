@@ -2,8 +2,19 @@ import React from 'react'
 import { Folder } from 'lucide-react'
 import { useAppStore } from '@/store/appStore'
 
-export const ProjectList: React.FC = () => {
+interface ProjectListProps {
+  searchQuery?: string
+}
+
+export const ProjectList: React.FC<ProjectListProps> = ({ searchQuery = '' }) => {
   const { projects, selectedProjectPath, selectProject, setSessions, setActiveTab, addTab, tabs } = useAppStore()
+  
+  // Filter projects based on search query
+  const filteredProjects = projects.filter(project => {
+    const projectName = project.name.toLowerCase()
+    const query = searchQuery.toLowerCase()
+    return projectName.includes(query)
+  })
   
   const handleProjectClick = async (projectPath: string) => {
     selectProject(projectPath)
@@ -37,7 +48,7 @@ export const ProjectList: React.FC = () => {
   
   return (
     <div>
-      {projects.map((project) => (
+      {filteredProjects.map((project) => (
         <div
           key={project.path}
           onClick={() => handleProjectClick(project.path)}

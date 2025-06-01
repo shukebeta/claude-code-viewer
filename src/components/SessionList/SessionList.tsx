@@ -32,9 +32,17 @@ export const SessionList: React.FC = () => {
   
   console.log('SessionsByDate:', sessionsByDate)
   
+  // Sort dates with "Unknown Date" always at the bottom
+  const sortedDates = Object.keys(sessionsByDate).sort((a, b) => {
+    if (a === 'Unknown Date') return 1
+    if (b === 'Unknown Date') return -1
+    // For actual dates, sort in descending order (newest first)
+    return new Date(b).getTime() - new Date(a).getTime()
+  })
+  
   return (
     <div style={{ padding: '4px' }}>
-      {Object.entries(sessionsByDate).map(([date, dateSessions]) => (
+      {sortedDates.map((date) => (
         <div key={date} style={{ marginBottom: '12px' }}>
           <div style={{
             padding: '8px 12px',
@@ -46,7 +54,7 @@ export const SessionList: React.FC = () => {
           }}>
             {date}
           </div>
-          {dateSessions.map((session) => (
+          {sessionsByDate[date].map((session) => (
             <div
               key={session.id}
               className={`session-item ${selectedSessionId === session.id ? 'active' : ''}`}
@@ -92,6 +100,22 @@ export const SessionList: React.FC = () => {
                   {formatCurrency(session.totalCost)}
                 </span>
               </div>
+              {session.preview && (
+                <div style={{
+                  fontSize: '12px',
+                  color: 'var(--muted-foreground)',
+                  marginTop: '8px',
+                  lineHeight: '1.4',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                  opacity: 0.7
+                }}>
+                  {session.preview}
+                </div>
+              )}
             </div>
           ))}
         </div>

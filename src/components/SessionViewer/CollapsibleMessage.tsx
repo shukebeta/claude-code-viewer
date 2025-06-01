@@ -4,20 +4,31 @@ import { ChevronDown, ChevronRight } from 'lucide-react'
 interface CollapsibleMessageProps {
   content: string
   maxLines?: number
+  maxCharacters?: number
 }
 
 export const CollapsibleMessage: React.FC<CollapsibleMessageProps> = ({
   content,
-  maxLines = 5
+  maxLines = 5,
+  maxCharacters = 300
 }) => {
   const [isExpanded, setIsExpanded] = useState(false)
   
   const lines = content.split('\n')
-  const shouldCollapse = lines.length > maxLines
+  const shouldCollapseByLines = lines.length > maxLines
+  const shouldCollapseByLength = content.length > maxCharacters
+  const shouldCollapse = shouldCollapseByLines || shouldCollapseByLength
   
-  const displayContent = shouldCollapse && !isExpanded 
-    ? lines.slice(0, maxLines).join('\n')
-    : content
+  let displayContent = content
+  if (shouldCollapse && !isExpanded) {
+    if (shouldCollapseByLength && !shouldCollapseByLines) {
+      // Collapse by character count
+      displayContent = content.substring(0, maxCharacters) + '...'
+    } else {
+      // Collapse by line count
+      displayContent = lines.slice(0, maxLines).join('\n')
+    }
+  }
 
   if (!shouldCollapse) {
     return (
@@ -66,7 +77,7 @@ export const CollapsibleMessage: React.FC<CollapsibleMessageProps> = ({
           {isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
           {isExpanded 
             ? 'Show less' 
-            : `Show ${lines.length - maxLines} more lines`
+            : 'Show more'
           }
         </button>
       )}

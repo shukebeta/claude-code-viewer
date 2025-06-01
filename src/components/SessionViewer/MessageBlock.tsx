@@ -89,9 +89,9 @@ export const MessageBlock: React.FC<MessageBlockProps> = ({ message }) => {
       return <div style={{ color: 'var(--muted-foreground)', fontStyle: 'italic' }}>No content available</div>
     }
 
-    // For user messages, use collapsible component for long text
+    // For user messages, use collapsible component for long text (300+ characters)
     if (message.type === 'user') {
-      return <CollapsibleMessage content={content} maxLines={6} />
+      return <CollapsibleMessage content={content} maxCharacters={300} />
     }
 
     // For assistant messages, render markdown

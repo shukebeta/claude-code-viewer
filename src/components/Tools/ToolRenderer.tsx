@@ -2,6 +2,8 @@ import React, { useState } from 'react'
 import { BaseToolComponent } from './BaseToolComponent'
 import { BashToolComponent } from './BashToolComponent'
 import { FileToolComponent } from './FileToolComponent'
+import { TodoToolComponent } from './TodoToolComponent'
+import { WebToolComponent } from './WebToolComponent'
 
 interface ToolRendererProps {
   toolName: string
@@ -43,6 +45,30 @@ export const ToolRenderer: React.FC<ToolRendererProps> = ({
             ? result?.output || result 
             : parameters?.content || parameters?.new_string || 'File modified'
         }
+        error={error}
+        compact={compact}
+      />
+    )
+  }
+
+  // Todo tools
+  if (['TodoRead', 'TodoWrite'].includes(toolName)) {
+    return (
+      <TodoToolComponent
+        parameters={parameters}
+        result={result}
+        error={error}
+        compact={compact}
+      />
+    )
+  }
+
+  // Web tools
+  if (['WebSearch', 'WebFetch'].includes(toolName)) {
+    return (
+      <WebToolComponent
+        parameters={parameters}
+        result={result}
         error={error}
         compact={compact}
       />
