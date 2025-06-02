@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Clock, MessageSquare, DollarSign } from 'lucide-react'
 import { Session } from '@/types'
 import { formatTime, formatCurrency } from '@/utils/formatters'
 import { useAppStore } from '@/store/appStore'
+import { SessionPreview } from '../SessionViewer/SessionPreview'
 
 interface RecentSessionsProps {
   limit?: number
@@ -18,6 +19,9 @@ export const RecentSessions: React.FC<RecentSessionsProps> = ({ limit = 10, show
   const [recentSessions, setRecentSessions] = useState<SessionWithProject[]>([])
   const [loading, setLoading] = useState(true)
   const [projectsMap, setProjectsMap] = useState<Record<string, any>>({})
+  const [hoveredSession, setHoveredSession] = useState<string | null>(null)
+  const [previewPosition, setPreviewPosition] = useState({ x: 0, y: 0 })
+  const hoverTimeoutRef = useRef<NodeJS.Timeout>()
   const { addTab, setActiveTab, setSessionsForProject } = useAppStore()
 
   useEffect(() => {
@@ -73,6 +77,35 @@ export const RecentSessions: React.FC<RecentSessionsProps> = ({ limit = 10, show
     setActiveTab(tabId)
   }
 
+  const handleMouseEnter = (session: SessionWithProject, event: React.MouseEvent) => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current)
+    }
+    
+    // Show preview immediately (no delay)
+    const rect = event.currentTarget.getBoundingClientRect()
+    setPreviewPosition({
+      x: rect.left,
+      y: rect.bottom + 8 // Position below the session card
+    })
+    setHoveredSession(session.id)
+  }
+
+  const handleMouseLeave = () => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current)
+    }
+    
+    // Small delay before hiding to allow moving to preview
+    hoverTimeoutRef.current = setTimeout(() => {
+      setHoveredSession(null)
+    }, 100)
+  }
+
+  const handlePreviewClose = () => {
+    setHoveredSession(null)
+  }
+
   if (loading) {
     return (
       <div style={{
@@ -117,6 +150,18 @@ export const RecentSessions: React.FC<RecentSessionsProps> = ({ limit = 10, show
           <div
             key={`${session.projectPath}-${session.id}`}
             onClick={() => handleSessionClick(session)}
+            onMouseEnter={(e) => {
+              handleMouseEnter(session, e)
+              e.currentTarget.style.transform = 'translateY(-2px)'
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)'
+              e.currentTarget.style.borderColor = 'var(--accent)'
+            }}
+            onMouseLeave={(e) => {
+              handleMouseLeave()
+              e.currentTarget.style.transform = 'translateY(0)'
+              e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.05)'
+              e.currentTarget.style.borderColor = 'var(--border)'
+            }}
             style={{
               padding: '20px',
               borderRadius: '12px',
@@ -125,16 +170,6 @@ export const RecentSessions: React.FC<RecentSessionsProps> = ({ limit = 10, show
               transition: 'all 0.2s ease',
               background: 'var(--bg-100)',
               boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)'
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)'
-              e.currentTarget.style.borderColor = 'var(--accent)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)'
-              e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.05)'
-              e.currentTarget.style.borderColor = 'var(--border)'
             }}
           >
             <div style={{
@@ -210,6 +245,16 @@ export const RecentSessions: React.FC<RecentSessionsProps> = ({ limit = 10, show
           </div>
         ))}
       </div>
+      
+      {/* Session Preview Overlay */}
+      {hoveredSession && (
+        <SessionPreview
+          sessionId={hoveredSession}
+          sessionFilePath={recentSessions.find(s => s.id === hoveredSession)?.filePath || ''}
+          position={previewPosition}
+          onClose={handlePreviewClose}
+        />
+      )}
     </div>
   )
 }

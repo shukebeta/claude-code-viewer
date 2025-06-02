@@ -1,10 +1,14 @@
-import React from 'react'
+import React, { useState, useRef } from 'react'
 import { Clock, DollarSign, MessageSquare, Folder } from 'lucide-react'
 import { useAppStore } from '@/store/appStore'
 import { formatTime, formatDate, formatCurrency } from '@/utils/formatters'
+import { SessionPreview } from './SessionPreview'
 
 export const SessionListView: React.FC = () => {
   const { sessions, selectedSessionId, selectSession, addTab, projects, selectedProjectPath } = useAppStore()
+  const [hoveredSession, setHoveredSession] = useState<string | null>(null)
+  const [previewPosition, setPreviewPosition] = useState({ x: 0, y: 0 })
+  const hoverTimeoutRef = useRef<NodeJS.Timeout>()
   
   const selectedProject = projects.find(p => p.path === selectedProjectPath)
   
@@ -14,6 +18,35 @@ export const SessionListView: React.FC = () => {
     if (selectedProject) {
       addTab(session, selectedProject)
     }
+  }
+
+  const handleMouseEnter = (session: any, event: React.MouseEvent) => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current)
+    }
+    
+    // Show preview immediately (no delay)
+    const rect = event.currentTarget.getBoundingClientRect()
+    setPreviewPosition({
+      x: rect.left,
+      y: rect.bottom + 8 // Position below the session card
+    })
+    setHoveredSession(session.id)
+  }
+
+  const handleMouseLeave = () => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current)
+    }
+    
+    // Small delay before hiding to allow moving to preview
+    hoverTimeoutRef.current = setTimeout(() => {
+      setHoveredSession(null)
+    }, 100)
+  }
+
+  const handlePreviewClose = () => {
+    setHoveredSession(null)
   }
 
   const sessionsByDate = sessions.reduce((acc, session) => {
@@ -106,6 +139,16 @@ export const SessionListView: React.FC = () => {
                 <div
                   key={session.id}
                   onClick={() => handleSessionClick(session)}
+                  onMouseEnter={(e) => {
+                    handleMouseEnter(session, e)
+                    e.currentTarget.style.borderColor = 'var(--accent)'
+                    e.currentTarget.style.background = 'var(--secondary)'
+                  }}
+                  onMouseLeave={(e) => {
+                    handleMouseLeave()
+                    e.currentTarget.style.borderColor = 'var(--border)'
+                    e.currentTarget.style.background = selectedSessionId === session.id ? 'var(--secondary)' : 'var(--background)'
+                  }}
                   style={{
                     padding: '16px',
                     border: '1px solid var(--border)',
@@ -184,6 +227,16 @@ export const SessionListView: React.FC = () => {
           </div>
         ))}
       </div>
+      
+      {/* Session Preview Overlay */}
+      {hoveredSession && (
+        <SessionPreview
+          sessionId={hoveredSession}
+          sessionFilePath={sessions.find(s => s.id === hoveredSession)?.filePath || ''}
+          position={previewPosition}
+          onClose={handlePreviewClose}
+        />
+      )}
     </div>
   )
 }
