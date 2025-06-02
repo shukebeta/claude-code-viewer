@@ -41,14 +41,28 @@ export const SessionListView: React.FC = () => {
       clearTimeout(hoverTimeoutRef.current)
     }
     
-    // Small delay before hiding to allow moving to preview
+    // Longer delay to allow moving to preview
     hoverTimeoutRef.current = setTimeout(() => {
       setHoveredSession(null)
-    }, 50)
+    }, 200)
   }
 
   const handlePreviewClose = () => {
-    setHoveredSession(null)
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current)
+    }
+    
+    // Immediate close when leaving preview area
+    hoverTimeoutRef.current = setTimeout(() => {
+      setHoveredSession(null)
+    }, 100)
+  }
+
+  const handlePreviewEnter = () => {
+    // Cancel any pending close when mouse enters preview
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current)
+    }
   }
 
   const sessionsByDate = sessions.reduce((acc, session) => {
@@ -237,6 +251,7 @@ export const SessionListView: React.FC = () => {
           sessionFilePath={sessions.find(s => s.id === hoveredSession)?.filePath || ''}
           position={previewPosition}
           onClose={handlePreviewClose}
+          onMouseEnter={handlePreviewEnter}
         />
       )}
     </div>

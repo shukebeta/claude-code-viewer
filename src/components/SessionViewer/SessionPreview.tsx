@@ -1,22 +1,25 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Message } from '@/types'
-import { User, Bot } from 'lucide-react'
+import { formatTime } from '@/utils/formatters'
 
 interface SessionPreviewProps {
   sessionId: string
   sessionFilePath: string
   position: { x: number; y: number; width: number; height: number }
   onClose: () => void
+  onMouseEnter?: () => void
 }
 
 export const SessionPreview: React.FC<SessionPreviewProps> = ({ 
   sessionId, 
   sessionFilePath, 
   position, 
-  onClose 
+  onClose,
+  onMouseEnter 
 }) => {
   const [messages, setMessages] = useState<Message[]>([])
   const [loading, setLoading] = useState(true)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     loadSessionPreview()
@@ -27,18 +30,42 @@ export const SessionPreview: React.FC<SessionPreviewProps> = ({
       setLoading(true)
       const sessionMessages = await window.api.readFile(sessionFilePath)
       
-      // Get recent messages for preview (last 8)
-      const recentMessages = sessionMessages
-        .filter((msg: Message) => msg.type === 'user' || msg.type === 'assistant')
+      // Filter messages with actual text content and get last 8
+      const messagesWithContent = sessionMessages
+        .filter((msg: Message) => {
+          if (msg.type !== 'user' && msg.type !== 'assistant') return false
+          
+          // Check if message has actual text content
+          let hasContent = false
+          if (msg.message?.content) {
+            if (typeof msg.message.content === 'string') {
+              hasContent = msg.message.content.trim().length > 0
+            } else if (Array.isArray(msg.message.content)) {
+              const textContent = msg.message.content.find((item: any) => item.type === 'text')
+              hasContent = textContent?.text && textContent.text.trim().length > 0
+            }
+          } else if (msg.content) {
+            hasContent = typeof msg.content === 'string' && msg.content.trim().length > 0
+          }
+          
+          return hasContent
+        })
         .slice(-8)
       
-      setMessages(recentMessages)
+      setMessages(messagesWithContent)
     } catch (error) {
       console.error('Error loading session preview:', error)
     } finally {
       setLoading(false)
     }
   }
+
+  // Scroll to bottom when messages are loaded
+  useEffect(() => {
+    if (!loading && scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight
+    }
+  }, [loading, messages])
 
   // Calculate smart positioning
   const getSmartPosition = () => {
@@ -88,7 +115,7 @@ export const SessionPreview: React.FC<SessionPreviewProps> = ({
     }
     
     // Truncate long content
-    return content.length > 150 ? content.substring(0, 150) + '...' : content
+    return content.length > 200 ? content.substring(0, 200) + '...' : content
   }
 
   const smartPos = getSmartPosition()
@@ -127,19 +154,20 @@ export const SessionPreview: React.FC<SessionPreviewProps> = ({
         width: '450px',
         maxHeight: '300px',
         overflow: 'hidden',
-        fontSize: '11px'
+        fontSize: '10px'
       }}
-      onMouseEnter={() => {
-        // Cancel any pending close when mouse enters preview
-      }}
+      onMouseEnter={onMouseEnter}
       onMouseLeave={onClose}
     >
       {/* Messages - matching SessionViewer design */}
-      <div style={{
-        maxHeight: '300px',
-        overflowY: 'auto',
-        padding: '12px'
-      }}>
+      <div 
+        ref={scrollContainerRef}
+        style={{
+          maxHeight: '300px',
+          overflowY: 'auto',
+          padding: '12px'
+        }}
+      >
         {messages.length === 0 ? (
           <div style={{
             padding: '20px',
@@ -155,49 +183,53 @@ export const SessionPreview: React.FC<SessionPreviewProps> = ({
               key={message.uuid || index}
               style={{
                 marginBottom: '12px',
-                display: 'flex',
-                gap: '8px',
-                fontSize: '11px'
+                fontSize: '10px'
               }}
             >
-              {/* Avatar */}
+              {/* Message header with dot - matching SessionViewer */}
               <div style={{
-                width: '20px',
-                height: '20px',
-                borderRadius: '10px',
-                backgroundColor: message.type === 'user' ? 'var(--accent)' : 'var(--muted)',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                marginTop: '2px'
+                gap: '8px',
+                marginBottom: '6px',
+                fontSize: '9px',
+                fontWeight: 500
               }}>
-                {message.type === 'user' ? (
-                  <User size={10} color="white" />
-                ) : (
-                  <Bot size={10} color="var(--foreground)" />
+                <div 
+                  className={`message-dot ${message.type}`}
+                  style={{
+                    width: '6px',
+                    height: '6px',
+                    borderRadius: '50%',
+                    flexShrink: 0
+                  }}
+                />
+                <span style={{
+                  textTransform: 'capitalize',
+                  color: 'var(--foreground)'
+                }}>
+                  {message.type}
+                </span>
+                {message.timestamp && (
+                  <span style={{
+                    fontSize: '8px',
+                    color: 'var(--muted-foreground)',
+                    fontFamily: 'SF Mono, Monaco, Cascadia Code, monospace'
+                  }}>
+                    {formatTime(new Date(message.timestamp))}
+                  </span>
                 )}
               </div>
               
-              {/* Message content */}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{
-                  fontSize: '10px',
-                  fontWeight: 500,
-                  color: message.type === 'user' ? 'var(--accent)' : 'var(--foreground)',
-                  marginBottom: '2px'
-                }}>
-                  {message.type === 'user' ? 'You' : 'Claude'}
-                </div>
-                <div style={{
-                  fontSize: '10px',
-                  lineHeight: '1.4',
-                  color: 'var(--foreground)',
-                  opacity: 0.9,
-                  wordBreak: 'break-word'
-                }}>
-                  {renderMessageContent(message)}
-                </div>
+              {/* Message content - no background for user messages */}
+              <div style={{
+                fontSize: '10px',
+                lineHeight: '1.4',
+                color: 'var(--foreground)',
+                wordBreak: 'break-word',
+                paddingLeft: '14px' // Align with dot
+              }}>
+                {renderMessageContent(message)}
               </div>
             </div>
           ))
