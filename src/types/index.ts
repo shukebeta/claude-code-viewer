@@ -47,5 +47,6 @@ export interface AppState {
   activeTabId: string | null
   messages: Record<string, Message[]>
   sidebarCollapsed: boolean
+  sidebarWidth: number
   theme: 'light' | 'dark'
 }

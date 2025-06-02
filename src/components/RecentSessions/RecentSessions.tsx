@@ -6,6 +6,7 @@ import { useAppStore } from '@/store/appStore'
 
 interface RecentSessionsProps {
   limit?: number
+  showProjectInfo?: boolean
 }
 
 interface SessionWithProject extends Session {
@@ -13,10 +14,10 @@ interface SessionWithProject extends Session {
   projectPath: string
 }
 
-export const RecentSessions: React.FC<RecentSessionsProps> = ({ limit = 10 }) => {
+export const RecentSessions: React.FC<RecentSessionsProps> = ({ limit = 10, showProjectInfo = false }) => {
   const [recentSessions, setRecentSessions] = useState<SessionWithProject[]>([])
   const [loading, setLoading] = useState(true)
-  const { addTab, setActiveTab } = useAppStore()
+  const { addTab, setActiveTab, setSessionsForProject } = useAppStore()
 
   useEffect(() => {
     loadRecentSessions()
@@ -33,6 +34,8 @@ export const RecentSessions: React.FC<RecentSessionsProps> = ({ limit = 10 }) =>
       
       for (const project of projects) {
         const sessions = await window.api.getSessions(project.path)
+        // Store sessions for this project
+        setSessionsForProject(project.path, sessions)
         const sessionsWithProject = sessions.map(session => ({
           ...session,
           projectName: project.name.split('/').pop() || project.name,
@@ -86,35 +89,42 @@ export const RecentSessions: React.FC<RecentSessionsProps> = ({ limit = 10 }) =>
   }
 
   return (
-    <div style={{ padding: '20px' }}>
+    <div>
       <h2 style={{
-        fontSize: '18px',
+        fontSize: '20px',
         fontWeight: 600,
-        marginBottom: '20px',
+        marginBottom: '24px',
         color: 'var(--foreground)'
       }}>
         Recent Sessions
       </h2>
       
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))',
+        gap: '16px'
+      }}>
         {recentSessions.map((session) => (
           <div
             key={`${session.projectPath}-${session.id}`}
             onClick={() => handleSessionClick(session)}
             style={{
-              padding: '16px',
-              borderRadius: '8px',
+              padding: '20px',
+              borderRadius: '12px',
               border: '1px solid var(--border)',
               cursor: 'pointer',
               transition: 'all 0.2s ease',
-              background: 'var(--secondary)'
+              background: 'var(--bg-100)',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'var(--muted)'
-              e.currentTarget.style.borderColor = 'var(--foreground)'
+              e.currentTarget.style.transform = 'translateY(-2px)'
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)'
+              e.currentTarget.style.borderColor = 'var(--accent)'
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'var(--secondary)'
+              e.currentTarget.style.transform = 'translateY(0)'
+              e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.05)'
               e.currentTarget.style.borderColor = 'var(--border)'
             }}
           >
@@ -124,10 +134,10 @@ export const RecentSessions: React.FC<RecentSessionsProps> = ({ limit = 10 }) =>
               alignItems: 'flex-start',
               marginBottom: '8px'
             }}>
-              <div>
+              <div style={{ flex: 1 }}>
                 <div style={{
-                  fontSize: '14px',
-                  fontWeight: 500,
+                  fontSize: '15px',
+                  fontWeight: 600,
                   color: 'var(--foreground)',
                   marginBottom: '4px'
                 }}>
@@ -136,9 +146,10 @@ export const RecentSessions: React.FC<RecentSessionsProps> = ({ limit = 10 }) =>
                 <div style={{
                   fontSize: '12px',
                   color: 'var(--muted-foreground)',
-                  fontFamily: 'SF Mono, Monaco, Cascadia Code, monospace'
+                  fontFamily: 'SF Mono, Monaco, Cascadia Code, monospace',
+                  opacity: 0.7
                 }}>
-                  {session.id}
+                  {session.id.substring(0, 8)}
                 </div>
               </div>
               <div style={{
@@ -148,7 +159,7 @@ export const RecentSessions: React.FC<RecentSessionsProps> = ({ limit = 10 }) =>
                 alignItems: 'center',
                 gap: '4px'
               }}>
-                <Clock size={12} />
+                <Clock size={14} />
                 {formatTime(new Date(session.startTime))}
               </div>
             </div>
@@ -156,15 +167,15 @@ export const RecentSessions: React.FC<RecentSessionsProps> = ({ limit = 10 }) =>
             {session.preview && (
               <div style={{
                 fontSize: '13px',
-                color: 'var(--muted-foreground)',
-                marginBottom: '12px',
-                lineHeight: '1.5',
+                color: 'var(--text-300)',
+                marginBottom: '16px',
+                lineHeight: '1.6',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 display: '-webkit-box',
-                WebkitLineClamp: 2,
+                WebkitLineClamp: 3,
                 WebkitBoxOrient: 'vertical',
-                opacity: 0.8
+                minHeight: '60px'
               }}>
                 {session.preview}
               </div>
@@ -176,14 +187,14 @@ export const RecentSessions: React.FC<RecentSessionsProps> = ({ limit = 10 }) =>
               fontSize: '12px',
               color: 'var(--muted-foreground)'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <MessageSquare size={12} />
-                {session.messageCount} messages
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <MessageSquare size={14} />
+                <span>{session.messageCount} messages</span>
               </div>
               {session.totalCost > 0 && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <DollarSign size={12} />
-                  {formatCurrency(session.totalCost)}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <DollarSign size={14} />
+                  <span>{formatCurrency(session.totalCost)}</span>
                 </div>
               )}
             </div>

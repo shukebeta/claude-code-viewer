@@ -18,6 +18,7 @@ interface AppStore extends AppState {
   
   // UI actions
   toggleSidebar: () => void
+  setSidebarWidth: (width: number) => void
   setTheme: (theme: 'light' | 'dark') => void
 }
 
@@ -32,6 +33,7 @@ export const useAppStore = create<AppStore>((set) => ({
   activeTabId: null,
   messages: {},
   sidebarCollapsed: false,
+  sidebarWidth: parseInt(localStorage.getItem('sidebarWidth') || '280'),
   theme: 'light',
   
   // Actions
@@ -106,6 +108,11 @@ export const useAppStore = create<AppStore>((set) => ({
   setActiveTab: (tabId) => set({ activeTabId: tabId }),
   
   toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
+  
+  setSidebarWidth: (width) => {
+    localStorage.setItem('sidebarWidth', width.toString())
+    set({ sidebarWidth: width })
+  },
   
   setTheme: (theme) => set({ theme })
 }))

@@ -1,12 +1,43 @@
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { ChevronRight, PanelLeftClose } from 'lucide-react'
 import { ProjectList } from '../ProjectList/ProjectList'
 import { SessionList } from '../SessionList/SessionList'
 import { useAppStore } from '@/store/appStore'
 
 export const Sidebar: React.FC = () => {
-  const { sidebarCollapsed, toggleSidebar, selectedProjectPath } = useAppStore()
+  const { sidebarCollapsed, toggleSidebar, selectedProjectPath, sidebarWidth, setSidebarWidth } = useAppStore()
   const [searchQuery, setSearchQuery] = useState('')
+  const [isResizing, setIsResizing] = useState(false)
+  const sidebarRef = useRef<HTMLDivElement>(null)
+  
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing) return
+      
+      const newWidth = e.clientX
+      if (newWidth > 200 && newWidth < 500) {
+        setSidebarWidth(newWidth)
+      }
+    }
+    
+    const handleMouseUp = () => {
+      setIsResizing(false)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+    
+    if (isResizing) {
+      document.body.style.cursor = 'col-resize'
+      document.body.style.userSelect = 'none'
+      document.addEventListener('mousemove', handleMouseMove)
+      document.addEventListener('mouseup', handleMouseUp)
+    }
+    
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [isResizing, setSidebarWidth])
   
   if (sidebarCollapsed) {
     return (
@@ -40,18 +71,22 @@ export const Sidebar: React.FC = () => {
   }
   
   return (
-    <aside className="sidebar" style={{
-      position: 'fixed',
-      left: 0,
-      top: 0,
-      bottom: 0,
-      width: 'var(--sidebar-width)',
-      display: 'flex',
-      flexDirection: 'column',
-      zIndex: 10,
-      background: 'var(--background)',
-      borderRight: '1px solid var(--border)'
-    }}>
+    <>
+      <aside 
+        ref={sidebarRef}
+        className="sidebar" 
+        style={{
+          position: 'fixed',
+          left: 0,
+          top: 0,
+          bottom: 0,
+          width: `${sidebarWidth}px`,
+          display: 'flex',
+          flexDirection: 'column',
+          zIndex: 10,
+          background: 'var(--background)',
+          borderRight: '1px solid var(--border)'
+        }}>
       {/* Traffic light area + header */}
       <div style={{
         height: '40px',
@@ -129,5 +164,30 @@ export const Sidebar: React.FC = () => {
         <ProjectList searchQuery={searchQuery} />
       </div>
     </aside>
+    
+    {/* Resize handle */}
+    <div
+      onMouseDown={() => setIsResizing(true)}
+      style={{
+        position: 'fixed',
+        left: `${sidebarWidth - 2}px`,
+        top: 0,
+        bottom: 0,
+        width: '4px',
+        cursor: 'col-resize',
+        zIndex: 11,
+        background: isResizing ? 'var(--accent)' : 'transparent',
+        transition: 'background 0.2s'
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.background = 'var(--accent)'
+      }}
+      onMouseLeave={(e) => {
+        if (!isResizing) {
+          e.currentTarget.style.background = 'transparent'
+        }
+      }}
+    />
+    </>
   )
 }

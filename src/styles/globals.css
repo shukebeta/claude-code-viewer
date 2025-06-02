@@ -4,7 +4,7 @@
 :root {
   --always-white: 0 0% 100%;
   --always-black: 0 0% 0%;
-  --sidebar-width: 280px;
+  /* Sidebar width is now dynamic and stored in app state */
 }
 
 /* Light Mode (Claude Theme) - Default */

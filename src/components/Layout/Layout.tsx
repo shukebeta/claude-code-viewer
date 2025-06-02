@@ -7,7 +7,7 @@ import { Dashboard } from '../Dashboard/Dashboard'
 import { useAppStore } from '@/store/appStore'
 
 export const Layout: React.FC = () => {
-  const { sidebarCollapsed, toggleSidebar, activeTabId, tabs } = useAppStore()
+  const { sidebarCollapsed, sidebarWidth, toggleSidebar, activeTabId, tabs } = useAppStore()
   
   useEffect(() => {
     // Handle keyboard shortcuts
@@ -78,7 +78,7 @@ export const Layout: React.FC = () => {
         <Sidebar />
         <main style={{
           flex: 1,
-          marginLeft: sidebarCollapsed ? '0' : 'var(--sidebar-width)',
+          marginLeft: sidebarCollapsed ? '0' : `${sidebarWidth}px`,
           marginTop: '40px',
           overflow: 'hidden',
           display: 'flex',
