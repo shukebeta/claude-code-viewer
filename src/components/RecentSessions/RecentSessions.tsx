@@ -17,6 +17,7 @@ interface SessionWithProject extends Session {
 export const RecentSessions: React.FC<RecentSessionsProps> = ({ limit = 10, showProjectInfo = false }) => {
   const [recentSessions, setRecentSessions] = useState<SessionWithProject[]>([])
   const [loading, setLoading] = useState(true)
+  const [projectsMap, setProjectsMap] = useState<Record<string, any>>({})
   const { addTab, setActiveTab, setSessionsForProject } = useAppStore()
 
   useEffect(() => {
@@ -28,6 +29,13 @@ export const RecentSessions: React.FC<RecentSessionsProps> = ({ limit = 10, show
       setLoading(true)
       // Get all projects
       const projects = await window.api.getProjects()
+      
+      // Create a map of project paths to project objects
+      const projMap: Record<string, any> = {}
+      projects.forEach(p => {
+        projMap[p.path] = p
+      })
+      setProjectsMap(projMap)
       
       // Get sessions from all projects
       const allSessions: SessionWithProject[] = []
@@ -60,7 +68,8 @@ export const RecentSessions: React.FC<RecentSessionsProps> = ({ limit = 10, show
 
   const handleSessionClick = (session: SessionWithProject) => {
     const tabId = `${session.projectName}-${session.id}`
-    addTab(session, { name: session.projectName, path: session.projectPath, sessionCount: 0 })
+    const project = projectsMap[session.projectPath] || { name: session.projectPath, path: session.projectPath, sessionCount: 0 }
+    addTab(session, project)
     setActiveTab(tabId)
   }
 

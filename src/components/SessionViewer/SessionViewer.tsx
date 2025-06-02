@@ -46,9 +46,9 @@ export const SessionViewer: React.FC<SessionViewerProps> = ({ tab }) => {
   }, [])
   
   const handleCopyCommand = () => {
-    if (!session || !tab.fullProjectPath) return
+    if (!session || !tab.actualProjectPath) return
     
-    const projectPath = tab.fullProjectPath
+    const projectPath = tab.actualProjectPath
     const sessionId = tab.sessionId
     
     // Use custom command template or default
@@ -209,26 +209,31 @@ export const SessionViewer: React.FC<SessionViewerProps> = ({ tab }) => {
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '16px'
+          gap: '12px'
         }}>
-          <div>
-            <h1 style={{
-              fontSize: '16px',
-              fontWeight: 600,
-              margin: 0,
-              marginBottom: '4px'
-            }}>
-              {tab.projectName} / {tab.sessionName}
-            </h1>
-            <div style={{
-              fontSize: '12px',
-              color: 'var(--muted-foreground)',
-              fontFamily: 'SF Mono, Monaco, Cascadia Code, monospace',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}>
-              <span>{tab.sessionId}</span>
+          <h1 style={{
+            fontSize: '14px',
+            fontWeight: 600,
+            margin: 0,
+            color: 'var(--foreground)'
+          }}>
+            {tab.projectName}
+          </h1>
+          <span style={{
+            fontSize: '13px',
+            color: 'var(--muted-foreground)'
+          }}>
+            /
+          </span>
+          <div style={{
+            fontSize: '13px',
+            color: 'var(--muted-foreground)',
+            fontFamily: 'SF Mono, Monaco, Cascadia Code, monospace',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <span>{tab.sessionId}</span>
               <div style={{ position: 'relative' }}>
                 <button
                   onClick={handleCopyCommand}
@@ -291,7 +296,6 @@ export const SessionViewer: React.FC<SessionViewerProps> = ({ tab }) => {
                 )}
               </div>
             </div>
-          </div>
         </div>
         <div style={{
           display: 'flex',

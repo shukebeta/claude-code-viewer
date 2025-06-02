@@ -83,7 +83,8 @@ export const useAppStore = create<AppStore>((set) => ({
           sessionId: session.id,
           sessionName: session.id.substring(0, 8),
           projectName: projectDisplayName,
-          fullProjectPath: project.path
+          fullProjectPath: project.path,
+          actualProjectPath: project.name  // This is the actual project path
         }],
         activeTabId: tabId
       }

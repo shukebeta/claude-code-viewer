@@ -36,6 +36,7 @@ export interface Tab {
   sessionName: string
   projectName: string
   fullProjectPath?: string
+  actualProjectPath?: string  // Real project path like /Users/lullu/mainpy/project
 }
 
 export interface AppState {
