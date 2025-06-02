@@ -55,8 +55,13 @@ export async function getProjects(): Promise<Project[]> {
   }
 }
 
-export async function getSessions(projectPath: string): Promise<Session[]> {
+export async function getSessions(projectName: string): Promise<Session[]> {
   try {
+    // projectName이 프로젝트명인지 전체 경로인지 확인
+    const projectPath = projectName.startsWith('/') 
+      ? projectName 
+      : join(CLAUDE_PROJECTS_PATH, projectName.replace(/\//g, '-'))
+    
     const files = await fs.readdir(projectPath)
     const sessions: Session[] = []
     
@@ -117,8 +122,23 @@ export async function getSessions(projectPath: string): Promise<Session[]> {
         // Use the last messages as preview
         const preview = recentMessages.join('\n').substring(0, 200)
         
+        // 세션 ID 추출 - jsonl 파일에서 실제 sessionId 찾기
+        let sessionId = basename(file, '.jsonl')
+        
+        // 첫 번째 줄에서 실제 sessionId 찾기
+        if (lines.length > 0) {
+          try {
+            const firstLine = JSON.parse(lines[0])
+            if (firstLine.sessionId) {
+              sessionId = firstLine.sessionId
+            }
+          } catch (e) {
+            // 기본값 사용
+          }
+        }
+        
         sessions.push({
-          id: basename(file, '.jsonl'),
+          id: sessionId,
           projectPath: projectPath,
           filePath,
           startTime,

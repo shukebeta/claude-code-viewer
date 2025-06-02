@@ -26,6 +26,7 @@
     "@types/react": "^19.1.5",
     "@types/react-dom": "^19.1.5",
     "@types/react-syntax-highlighter": "^15.5.13",
+    "@types/uuid": "^10.0.0",
     "@vitejs/plugin-react": "^4.5.0",
     "autoprefixer": "^10.4.21",
     "concurrently": "^9.1.2",
@@ -33,6 +34,7 @@
     "electron-builder": "^26.0.12",
     "electron-vite": "^3.1.0",
     "postcss": "^8.5.3",
+    "ts-node": "^10.9.2",
     "typescript": "^5.8.3",
     "vite": "^6.3.5"
   },
@@ -51,6 +53,7 @@
     "remark-gfm": "^4.0.1",
     "tailwind-merge": "^3.3.0",
     "tailwindcss": "^4.1.7",
+    "uuid": "^11.0.4",
     "zustand": "^5.0.5"
   },
   "build": {
@@ -60,16 +63,42 @@
       "output": "release"
     },
     "files": [
-      "dist/**/*"
+      "dist/**/*",
+      "cli/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "cli",
+        "to": "cli",
+        "filter": ["**/*"]
+      }
     ],
     "mac": {
-      "category": "public.app-category.developer-tools"
+      "category": "public.app-category.developer-tools",
+      "protocols": [
+        {
+          "name": "Claude Viewer",
+          "schemes": ["claude-viewer"]
+        }
+      ]
     },
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "protocols": [
+        {
+          "name": "Claude Viewer",
+          "schemes": ["claude-viewer"]
+        }
+      ]
     },
     "linux": {
-      "target": "AppImage"
+      "target": "AppImage",
+      "protocols": [
+        {
+          "name": "Claude Viewer",
+          "schemes": ["claude-viewer"]
+        }
+      ]
     }
   }
 }

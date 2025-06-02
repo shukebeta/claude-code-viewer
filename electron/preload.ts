@@ -5,6 +5,7 @@ import { electronAPI } from '@electron-toolkit/preload'
 const api = {
   // File system operations
   readDirectory: (path: string) => ipcRenderer.invoke('fs:readDirectory', path),
+  getProjects: () => ipcRenderer.invoke('fs:getProjects'),
   getSessions: (projectPath: string) => ipcRenderer.invoke('fs:getSessions', projectPath),
   readFile: (path: string) => ipcRenderer.invoke('fs:readFile', path),
   watchFile: (path: string) => {
@@ -17,6 +18,11 @@ const api = {
   // File change events
   onFileChange: (callback: (path: string) => void) => {
     ipcRenderer.on('fs:fileChanged', (_, path) => callback(path))
+  },
+  
+  // Deep link events
+  onDeepLinkOpen: (callback: (params: { sessionId?: string; projectPath?: string; jsonlFile?: string }) => void) => {
+    ipcRenderer.on('deep-link-open', (_, params) => callback(params))
   },
   
   // Path utilities
