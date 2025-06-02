@@ -7,7 +7,7 @@ import { SessionPreview } from './SessionPreview'
 export const SessionListView: React.FC = () => {
   const { sessions, selectedSessionId, selectSession, addTab, projects, selectedProjectPath } = useAppStore()
   const [hoveredSession, setHoveredSession] = useState<string | null>(null)
-  const [previewPosition, setPreviewPosition] = useState({ x: 0, y: 0 })
+  const [previewPosition, setPreviewPosition] = useState({ x: 0, y: 0, width: 0, height: 0 })
   const hoverTimeoutRef = useRef<NodeJS.Timeout>()
   
   const selectedProject = projects.find(p => p.path === selectedProjectPath)
@@ -29,7 +29,9 @@ export const SessionListView: React.FC = () => {
     const rect = event.currentTarget.getBoundingClientRect()
     setPreviewPosition({
       x: rect.left,
-      y: rect.bottom + 8 // Position below the session card
+      y: rect.top,
+      width: rect.width,
+      height: rect.height
     })
     setHoveredSession(session.id)
   }
@@ -42,7 +44,7 @@ export const SessionListView: React.FC = () => {
     // Small delay before hiding to allow moving to preview
     hoverTimeoutRef.current = setTimeout(() => {
       setHoveredSession(null)
-    }, 100)
+    }, 50)
   }
 
   const handlePreviewClose = () => {

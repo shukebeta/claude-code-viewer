@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { Message } from '@/types'
-import { Clock, MessageSquare, DollarSign, User, Bot } from 'lucide-react'
-import { formatTime, formatCurrency } from '@/utils/formatters'
+import { User, Bot } from 'lucide-react'
 
 interface SessionPreviewProps {
   sessionId: string
   sessionFilePath: string
-  position: { x: number; y: number }
+  position: { x: number; y: number; width: number; height: number }
   onClose: () => void
 }
 
@@ -18,7 +17,6 @@ export const SessionPreview: React.FC<SessionPreviewProps> = ({
 }) => {
   const [messages, setMessages] = useState<Message[]>([])
   const [loading, setLoading] = useState(true)
-  const [stats, setStats] = useState({ messageCount: 0, totalCost: 0, startTime: null as Date | null })
 
   useEffect(() => {
     loadSessionPreview()
@@ -29,32 +27,10 @@ export const SessionPreview: React.FC<SessionPreviewProps> = ({
       setLoading(true)
       const sessionMessages = await window.api.readFile(sessionFilePath)
       
-      // Calculate stats
-      let messageCount = 0
-      let totalCost = 0
-      let startTime: Date | null = null
-      
-      sessionMessages.forEach((msg: Message) => {
-        if (msg.type === 'user' || msg.type === 'assistant') {
-          messageCount++
-        }
-        if (msg.costUSD) {
-          totalCost += msg.costUSD
-        }
-        if (msg.timestamp) {
-          const msgTime = new Date(msg.timestamp)
-          if (!startTime || msgTime < startTime) {
-            startTime = msgTime
-          }
-        }
-      })
-      
-      setStats({ messageCount, totalCost, startTime })
-      
-      // Get recent messages for preview (last 10)
+      // Get recent messages for preview (last 8)
       const recentMessages = sessionMessages
         .filter((msg: Message) => msg.type === 'user' || msg.type === 'assistant')
-        .slice(-10)
+        .slice(-8)
       
       setMessages(recentMessages)
     } catch (error) {
@@ -62,6 +38,39 @@ export const SessionPreview: React.FC<SessionPreviewProps> = ({
     } finally {
       setLoading(false)
     }
+  }
+
+  // Calculate smart positioning
+  const getSmartPosition = () => {
+    const viewportWidth = window.innerWidth
+    const viewportHeight = window.innerHeight
+    const previewWidth = 450
+    const previewHeight = 300
+    
+    let left = position.x
+    let top = position.y + position.height // Default: below the card
+    
+    // Check if preview would go off right edge
+    if (left + previewWidth > viewportWidth - 20) {
+      left = position.x + position.width - previewWidth // Right align
+    }
+    
+    // Check if preview would go off bottom edge
+    if (top + previewHeight > viewportHeight - 20) {
+      top = position.y - previewHeight // Above the card
+    }
+    
+    // Ensure we don't go off left edge
+    if (left < 20) {
+      left = 20
+    }
+    
+    // Ensure we don't go off top edge
+    if (top < 20) {
+      top = position.y + position.height // Force below if no room above
+    }
+    
+    return { left, top }
   }
 
   const renderMessageContent = (message: Message) => {
@@ -79,22 +88,23 @@ export const SessionPreview: React.FC<SessionPreviewProps> = ({
     }
     
     // Truncate long content
-    return content.length > 200 ? content.substring(0, 200) + '...' : content
+    return content.length > 150 ? content.substring(0, 150) + '...' : content
   }
+
+  const smartPos = getSmartPosition()
 
   if (loading) {
     return (
       <div style={{
         position: 'fixed',
-        left: position.x,
-        top: position.y,
+        left: smartPos.left,
+        top: smartPos.top,
         zIndex: 2000,
         backgroundColor: 'var(--background)',
         border: '1px solid var(--border)',
         borderRadius: '8px',
-        padding: '16px',
+        padding: '12px 16px',
         boxShadow: '0 8px 32px rgba(0, 0, 0, 0.15)',
-        minWidth: '300px',
         fontSize: '12px',
         color: 'var(--muted-foreground)'
       }}>
@@ -107,72 +117,35 @@ export const SessionPreview: React.FC<SessionPreviewProps> = ({
     <div
       style={{
         position: 'fixed',
-        left: position.x,
-        top: position.y,
+        left: smartPos.left,
+        top: smartPos.top,
         zIndex: 2000,
         backgroundColor: 'var(--background)',
-        border: '1px solid var(--border)',
-        borderRadius: '12px',
-        boxShadow: '0 12px 48px rgba(0, 0, 0, 0.2)',
-        width: '500px',
-        maxHeight: '400px',
+        border: '2px solid var(--accent)',
+        borderRadius: '8px',
+        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.08)',
+        width: '450px',
+        maxHeight: '300px',
         overflow: 'hidden',
         fontSize: '11px'
       }}
+      onMouseEnter={() => {
+        // Cancel any pending close when mouse enters preview
+      }}
       onMouseLeave={onClose}
     >
-      {/* Header */}
+      {/* Messages - matching SessionViewer design */}
       <div style={{
-        padding: '12px 16px',
-        borderBottom: '1px solid var(--border)',
-        backgroundColor: 'var(--bg-100)'
-      }}>
-        <div style={{
-          fontSize: '12px',
-          fontWeight: 600,
-          color: 'var(--foreground)',
-          marginBottom: '4px',
-          fontFamily: 'SF Mono, Monaco, Cascadia Code, monospace'
-        }}>
-          {sessionId.substring(0, 12)}...
-        </div>
-        <div style={{
-          display: 'flex',
-          gap: '12px',
-          fontSize: '10px',
-          color: 'var(--muted-foreground)'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <MessageSquare size={10} />
-            {stats.messageCount} messages
-          </div>
-          {stats.totalCost > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <DollarSign size={10} />
-              {formatCurrency(stats.totalCost)}
-            </div>
-          )}
-          {stats.startTime && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <Clock size={10} />
-              {formatTime(stats.startTime)}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Messages */}
-      <div style={{
-        maxHeight: '320px',
+        maxHeight: '300px',
         overflowY: 'auto',
-        padding: '8px'
+        padding: '12px'
       }}>
         {messages.length === 0 ? (
           <div style={{
-            padding: '16px',
+            padding: '20px',
             textAlign: 'center',
             color: 'var(--muted-foreground)',
-            fontSize: '10px'
+            fontSize: '12px'
           }}>
             No messages to preview
           </div>
@@ -181,51 +154,50 @@ export const SessionPreview: React.FC<SessionPreviewProps> = ({
             <div
               key={message.uuid || index}
               style={{
-                marginBottom: '6px',
-                padding: '6px 8px',
-                borderRadius: '6px',
-                backgroundColor: message.type === 'user' ? 'var(--secondary)' : 'var(--bg-100)',
-                border: '1px solid ' + (message.type === 'user' ? 'var(--border)' : 'transparent')
+                marginBottom: '12px',
+                display: 'flex',
+                gap: '8px',
+                fontSize: '11px'
               }}
             >
+              {/* Avatar */}
               <div style={{
+                width: '20px',
+                height: '20px',
+                borderRadius: '10px',
+                backgroundColor: message.type === 'user' ? 'var(--accent)' : 'var(--muted)',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '4px',
-                marginBottom: '2px'
+                justifyContent: 'center',
+                flexShrink: 0,
+                marginTop: '2px'
               }}>
                 {message.type === 'user' ? (
-                  <User size={8} style={{ color: 'var(--accent)' }} />
+                  <User size={10} color="white" />
                 ) : (
-                  <Bot size={8} style={{ color: 'var(--foreground)' }} />
-                )}
-                <span style={{
-                  fontSize: '9px',
-                  fontWeight: 500,
-                  color: message.type === 'user' ? 'var(--accent)' : 'var(--foreground)'
-                }}>
-                  {message.type === 'user' ? 'User' : 'Claude'}
-                </span>
-                {message.timestamp && (
-                  <span style={{
-                    fontSize: '8px',
-                    color: 'var(--muted-foreground)',
-                    marginLeft: 'auto'
-                  }}>
-                    {new Date(message.timestamp).toLocaleTimeString([], { 
-                      hour: '2-digit', 
-                      minute: '2-digit' 
-                    })}
-                  </span>
+                  <Bot size={10} color="var(--foreground)" />
                 )}
               </div>
-              <div style={{
-                fontSize: '10px',
-                lineHeight: '1.3',
-                color: 'var(--foreground)',
-                opacity: 0.9
-              }}>
-                {renderMessageContent(message)}
+              
+              {/* Message content */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{
+                  fontSize: '10px',
+                  fontWeight: 500,
+                  color: message.type === 'user' ? 'var(--accent)' : 'var(--foreground)',
+                  marginBottom: '2px'
+                }}>
+                  {message.type === 'user' ? 'You' : 'Claude'}
+                </div>
+                <div style={{
+                  fontSize: '10px',
+                  lineHeight: '1.4',
+                  color: 'var(--foreground)',
+                  opacity: 0.9,
+                  wordBreak: 'break-word'
+                }}>
+                  {renderMessageContent(message)}
+                </div>
               </div>
             </div>
           ))
