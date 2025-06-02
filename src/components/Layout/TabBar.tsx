@@ -4,7 +4,7 @@ import { useTheme } from 'next-themes'
 import { useAppStore } from '@/store/appStore'
 
 export const TabBar: React.FC = () => {
-  const { tabs, activeTabId, setActiveTab, removeTab, addTab, sidebarCollapsed } = useAppStore()
+  const { tabs, activeTabId, setActiveTab, removeTab, addTab, sidebarCollapsed, sidebarWidth } = useAppStore()
   const { theme, setTheme } = useTheme()
   
   const handleNewTab = () => {
@@ -21,7 +21,7 @@ export const TabBar: React.FC = () => {
     <div className="tab-bar" style={{
       position: 'fixed',
       top: 0,
-      left: sidebarCollapsed ? 0 : 'var(--sidebar-width)',
+      left: sidebarCollapsed ? 0 : `${sidebarWidth}px`,
       right: 0,
       transition: 'left 0.2s ease',
       zIndex: 20
@@ -32,6 +32,7 @@ export const TabBar: React.FC = () => {
         alignItems: 'center',
         paddingLeft: sidebarCollapsed ? '120px' : '12px',
         paddingRight: '12px',
+        fontSize: '13px'
       }}>
         <div style={{
           flex: 1,
@@ -50,7 +51,8 @@ export const TabBar: React.FC = () => {
               if (tab.id === 'dashboard') return 'Dashboard'
               if (tab.id.startsWith('new-tab-')) return 'New Tab'
               if (tab.id.startsWith('project-')) return tab.projectName || 'Project'
-              return tab.sessionName?.substring(0, 8) || 'Session'
+              // For session tabs, show format: "projectName / sessionId"
+              return `${tab.projectName} / ${tab.sessionName}`
             }
             
             const getTabIcon = () => {

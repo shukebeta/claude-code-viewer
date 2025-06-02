@@ -3,6 +3,7 @@ import { useAppStore } from '@/store/appStore'
 import { Message, Tab } from '@/types'
 import { MessageBlock } from './MessageBlock'
 import { Timeline } from './Timeline'
+import { Copy, Check, Settings } from 'lucide-react'
 
 interface SessionViewerProps {
   tab: Tab
@@ -13,8 +14,12 @@ export const SessionViewer: React.FC<SessionViewerProps> = ({ tab }) => {
   const [isLive, setIsLive] = useState(false)
   const [autoScroll, setAutoScroll] = useState(true)
   const [currentMessageIndex, setCurrentMessageIndex] = useState<number | undefined>()
+  const [copied, setCopied] = useState(false)
+  const [showTooltip, setShowTooltip] = useState(false)
+  const [customCommand, setCustomCommand] = useState<string | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const messageRefs = useRef<(HTMLDivElement | null)[]>([])
+  const tooltipTimeoutRef = useRef<NodeJS.Timeout>()
   const sessionMessages = messages[tab.sessionId] || []
   
   // Find the session details from all project sessions
@@ -31,6 +36,56 @@ export const SessionViewer: React.FC<SessionViewerProps> = ({ tab }) => {
   console.log('[SessionViewer] Looking for session:', tab.sessionId)
   console.log('[SessionViewer] Available sessions by project:', sessionsByProject)
   console.log('[SessionViewer] Found session:', session)
+  
+  // Load custom command from localStorage
+  useEffect(() => {
+    const savedCommand = localStorage.getItem('claude-viewer-custom-command')
+    if (savedCommand) {
+      setCustomCommand(savedCommand)
+    }
+  }, [])
+  
+  const handleCopyCommand = () => {
+    if (!session || !tab.fullProjectPath) return
+    
+    const projectPath = tab.fullProjectPath
+    const sessionId = tab.sessionId
+    
+    // Use custom command template or default
+    const template = customCommand || 'cd {projectPath} && claude --resume {sessionId}'
+    const command = template
+      .replace('{projectPath}', projectPath)
+      .replace('{sessionId}', sessionId)
+    
+    navigator.clipboard.writeText(command)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+  
+  const handleMouseEnter = () => {
+    tooltipTimeoutRef.current = setTimeout(() => {
+      setShowTooltip(true)
+    }, 1500) // Show tooltip after 1.5 seconds
+  }
+  
+  const handleMouseLeave = () => {
+    if (tooltipTimeoutRef.current) {
+      clearTimeout(tooltipTimeoutRef.current)
+    }
+    setShowTooltip(false)
+  }
+  
+  const handleRightClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+    const newCommand = prompt(
+      'Enter custom command template:\n\nAvailable variables:\n{projectPath} - Full project path\n{sessionId} - Session ID\n\nExample: cd {projectPath} && claude --resume {sessionId}',
+      customCommand || 'cd {projectPath} && claude --resume {sessionId}'
+    )
+    if (newCommand !== null) {
+      setCustomCommand(newCommand)
+      localStorage.setItem('claude-viewer-custom-command', newCommand)
+    }
+  }
   
   useEffect(() => {
     if (!session) return
@@ -151,14 +206,92 @@ export const SessionViewer: React.FC<SessionViewerProps> = ({ tab }) => {
         borderBottom: '1px solid var(--border)',
         backgroundColor: 'var(--background)'
       }}>
-        <div>
-          <h1 style={{
-            fontSize: '16px',
-            fontWeight: 600,
-            margin: 0
-          }}>
-            {tab.projectName} / {tab.sessionName}
-          </h1>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '16px'
+        }}>
+          <div>
+            <h1 style={{
+              fontSize: '16px',
+              fontWeight: 600,
+              margin: 0,
+              marginBottom: '4px'
+            }}>
+              {tab.projectName} / {tab.sessionName}
+            </h1>
+            <div style={{
+              fontSize: '12px',
+              color: 'var(--muted-foreground)',
+              fontFamily: 'SF Mono, Monaco, Cascadia Code, monospace',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <span>{tab.sessionId}</span>
+              <div style={{ position: 'relative' }}>
+                <button
+                  onClick={handleCopyCommand}
+                  onMouseEnter={handleMouseEnter}
+                  onMouseLeave={handleMouseLeave}
+                  onContextMenu={handleRightClick}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '4px',
+                    borderRadius: '4px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: copied ? 'var(--accent)' : 'var(--muted-foreground)',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.background = 'var(--secondary)'
+                    e.currentTarget.style.color = 'var(--foreground)'
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.background = 'none'
+                    e.currentTarget.style.color = copied ? 'var(--accent)' : 'var(--muted-foreground)'
+                  }}
+                  title="Copy resume command"
+                >
+                  {copied ? <Check size={14} /> : <Copy size={14} />}
+                </button>
+                {showTooltip && (
+                  <div style={{
+                    position: 'absolute',
+                    bottom: '100%',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    marginBottom: '8px',
+                    padding: '8px 12px',
+                    background: 'var(--foreground)',
+                    color: 'var(--background)',
+                    borderRadius: '6px',
+                    fontSize: '12px',
+                    whiteSpace: 'nowrap',
+                    zIndex: 1000,
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)'
+                  }}>
+                    Right-click to customize command
+                    <div style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      width: 0,
+                      height: 0,
+                      borderLeft: '4px solid transparent',
+                      borderRight: '4px solid transparent',
+                      borderTop: '4px solid var(--foreground)'
+                    }} />
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
         <div style={{
           display: 'flex',

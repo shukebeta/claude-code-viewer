@@ -106,21 +106,20 @@ function App(): JSX.Element {
         
         console.log('[DEV MODE] Opening session:', tabId)
         
-        // Add tab and activate it
-        addTab(
-          { 
-            id: sessionId, 
-            filePath: jsonlFile || '', 
-            projectPath: projectPath,
-            messageCount: 0,
-            totalCost: 0
-          } as any,
-          { 
-            name: projectName, 
-            path: projectPath, 
-            sessionCount: 0 
-          }
-        )
+        // Add tab and activate it with full project path info
+        const mockSession = { 
+          id: sessionId, 
+          filePath: jsonlFile || '', 
+          projectPath: projectPath,
+          messageCount: 0,
+          totalCost: 0
+        } as any
+        const mockProject = { 
+          name: projectName, 
+          path: projectPath, 
+          sessionCount: 0 
+        }
+        addTab(mockSession, mockProject)
         setActiveTab(tabId)
         
         // Clear the URL to avoid re-triggering

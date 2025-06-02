@@ -35,6 +35,7 @@ export interface Tab {
   sessionId: string
   sessionName: string
   projectName: string
+  fullProjectPath?: string
 }
 
 export interface AppState {
