@@ -6,6 +6,7 @@ interface AppStore extends AppState {
   setProjects: (projects: Project[]) => void
   selectProject: (path: string | null) => void
   setSessions: (sessions: Session[]) => void
+  setSessionsForProject: (projectPath: string, sessions: Session[]) => void
   selectSession: (id: string | null) => void
   setMessages: (sessionId: string, messages: Message[]) => void
   appendMessage: (sessionId: string, message: Message) => void
@@ -25,6 +26,7 @@ export const useAppStore = create<AppStore>((set) => ({
   projects: [],
   selectedProjectPath: null,
   sessions: [],
+  sessionsByProject: {},
   selectedSessionId: null,
   tabs: [],
   activeTabId: null,
@@ -38,6 +40,14 @@ export const useAppStore = create<AppStore>((set) => ({
   selectProject: (path) => set({ selectedProjectPath: path, sessions: [], selectedSessionId: null }),
   
   setSessions: (sessions) => set({ sessions }),
+  
+  setSessionsForProject: (projectPath, sessions) =>
+    set((state) => ({
+      sessionsByProject: {
+        ...state.sessionsByProject,
+        [projectPath]: sessions
+      }
+    })),
   
   selectSession: (id) => set({ selectedSessionId: id }),
   

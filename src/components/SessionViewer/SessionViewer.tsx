@@ -9,7 +9,7 @@ interface SessionViewerProps {
 }
 
 export const SessionViewer: React.FC<SessionViewerProps> = ({ tab }) => {
-  const { messages, setMessages, sessions } = useAppStore()
+  const { messages, setMessages, sessionsByProject } = useAppStore()
   const [isLive, setIsLive] = useState(false)
   const [autoScroll, setAutoScroll] = useState(true)
   const [currentMessageIndex, setCurrentMessageIndex] = useState<number | undefined>()
@@ -17,8 +17,20 @@ export const SessionViewer: React.FC<SessionViewerProps> = ({ tab }) => {
   const messageRefs = useRef<(HTMLDivElement | null)[]>([])
   const sessionMessages = messages[tab.sessionId] || []
   
-  // Find the session details
-  const session = sessions.find(s => s.id === tab.sessionId)
+  // Find the session details from all project sessions
+  let session = null
+  for (const projectPath in sessionsByProject) {
+    const projectSessions = sessionsByProject[projectPath]
+    const found = projectSessions.find(s => s.id === tab.sessionId)
+    if (found) {
+      session = found
+      break
+    }
+  }
+  
+  console.log('[SessionViewer] Looking for session:', tab.sessionId)
+  console.log('[SessionViewer] Available sessions by project:', sessionsByProject)
+  console.log('[SessionViewer] Found session:', session)
   
   useEffect(() => {
     if (!session) return

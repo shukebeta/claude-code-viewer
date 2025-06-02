@@ -7,7 +7,7 @@ interface ProjectListProps {
 }
 
 export const ProjectList: React.FC<ProjectListProps> = ({ searchQuery = '' }) => {
-  const { projects, selectedProjectPath, selectProject, setSessions, setActiveTab, addTab, tabs } = useAppStore()
+  const { projects, selectedProjectPath, selectProject, setSessions, setSessionsForProject, setActiveTab, addTab, tabs } = useAppStore()
   
   // Filter projects based on search query
   const filteredProjects = projects.filter(project => {
@@ -21,6 +21,7 @@ export const ProjectList: React.FC<ProjectListProps> = ({ searchQuery = '' }) =>
     try {
       const sessions = await window.api.getSessions(projectPath)
       setSessions(sessions)
+      setSessionsForProject(projectPath, sessions)
       
       // If user clicks the same project again or wants to see session list, 
       // create a new tab or switch to a tab that shows session list

@@ -47,6 +47,11 @@ function createWindow(): void {
 
   mainWindow.on('ready-to-show', () => {
     mainWindow?.show()
+    
+    // 개발 모드에서는 개발자 도구 자동 열기
+    if (is.dev) {
+      mainWindow?.webContents.openDevTools()
+    }
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -92,15 +97,30 @@ function handleDeepLink(url: string) {
       
       // webContents가 준비될 때까지 기다린 후 전송
       if (mainWindow.webContents.isLoading()) {
+        console.log('Window is still loading, waiting...')
         mainWindow.webContents.once('did-finish-load', () => {
-          console.log('Sending deep link to renderer after load:', params)
+          console.log('Window loaded! Sending deep link to renderer:', params)
           if (!mainWindow?.isDestroyed()) {
             mainWindow!.webContents.send('deep-link-open', params)
+            
+            // 디버깅: 렌더러 프로세스에서 콘솔 로그 실행
+            mainWindow!.webContents.executeJavaScript(`
+              console.log('[Renderer] Received deep-link-open event');
+              console.log('[Renderer] Window.api available:', !!window.api);
+              console.log('[Renderer] Current URL:', window.location.href);
+            `)
           }
         })
       } else {
-        console.log('Sending deep link to renderer:', params)
+        console.log('Window is ready, sending deep link to renderer:', params)
         mainWindow.webContents.send('deep-link-open', params)
+        
+        // 디버깅: 렌더러 프로세스에서 콘솔 로그 실행
+        mainWindow.webContents.executeJavaScript(`
+          console.log('[Renderer] Received deep-link-open event');
+          console.log('[Renderer] Window.api available:', !!window.api);
+          console.log('[Renderer] Current URL:', window.location.href);
+        `)
       }
     } catch (error) {
       console.error('Error handling deep link:', error)

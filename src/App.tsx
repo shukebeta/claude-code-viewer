@@ -5,7 +5,7 @@ import { useAppStore } from '@/store/appStore'
 import './styles/globals.css'
 
 function App(): JSX.Element {
-  const { setProjects, setSessions, addTab, setActiveTab } = useAppStore()
+  const { setProjects, setSessions, setSessionsForProject, addTab, setActiveTab } = useAppStore()
   
   useEffect(() => {
     // Load projects on app start
@@ -53,8 +53,8 @@ function App(): JSX.Element {
           const sessions = await window.api.getSessions(params.projectPath)
           console.log('[App] Loaded sessions:', sessions.length)
           
-          // IMPORTANT: Set sessions in the store so SessionViewer can find them
-          setSessions(sessions)
+          // IMPORTANT: Set sessions in the store for this specific project
+          setSessionsForProject(params.projectPath, sessions)
           
           // Find the specific session
           const session = sessions.find(s => s.id === params.sessionId)

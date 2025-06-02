@@ -55,8 +55,8 @@ export const Layout: React.FC = () => {
         document.documentElement.style.fontSize = `${newZoom}px`
       }
       
-      // 0 to reset zoom
-      if (e.key === '0' && !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey) {
+      // Cmd/Ctrl + 0 to reset zoom
+      if (e.key === '0' && (e.ctrlKey || e.metaKey)) {
         e.preventDefault()
         document.documentElement.style.fontSize = '16px'
       }
