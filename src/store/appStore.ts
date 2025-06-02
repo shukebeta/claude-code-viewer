@@ -56,7 +56,9 @@ export const useAppStore = create<AppStore>((set) => ({
   
   addTab: (session, project) =>
     set((state) => {
-      const tabId = `${project.name}-${session.id}`
+      // project.name이 슬래시를 포함할 수 있으므로 안전한 ID 생성
+      const projectDisplayName = project.path.split('/').pop() || 'project'
+      const tabId = `${projectDisplayName}-${session.id}`
       const existingTab = state.tabs.find(t => t.id === tabId)
       
       if (existingTab) {
@@ -68,7 +70,7 @@ export const useAppStore = create<AppStore>((set) => ({
           id: tabId,
           sessionId: session.id,
           sessionName: session.id.substring(0, 8),
-          projectName: project.name.split('/').pop() || project.name
+          projectName: projectDisplayName
         }],
         activeTabId: tabId
       }
