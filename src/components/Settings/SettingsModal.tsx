@@ -1,0 +1,292 @@
+import React, { useState, useEffect } from 'react'
+import { X, RotateCcw, Info } from 'lucide-react'
+
+interface SettingsModalProps {
+  isOpen: boolean
+  onClose: () => void
+}
+
+const DEFAULT_COMMAND = 'cd {projectPath} && claude --resume {sessionId}'
+
+export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
+  const [customCommand, setCustomCommand] = useState('')
+  const [isDefault, setIsDefault] = useState(true)
+
+  useEffect(() => {
+    if (isOpen) {
+      const savedCommand = localStorage.getItem('claude-viewer-custom-command')
+      if (savedCommand) {
+        setCustomCommand(savedCommand)
+        setIsDefault(savedCommand === DEFAULT_COMMAND)
+      } else {
+        setCustomCommand(DEFAULT_COMMAND)
+        setIsDefault(true)
+      }
+    }
+  }, [isOpen])
+
+  const handleSave = () => {
+    localStorage.setItem('claude-viewer-custom-command', customCommand)
+    onClose()
+  }
+
+  const handleReset = () => {
+    setCustomCommand(DEFAULT_COMMAND)
+    setIsDefault(true)
+  }
+
+  const handleCommandChange = (value: string) => {
+    setCustomCommand(value)
+    setIsDefault(value === DEFAULT_COMMAND)
+  }
+
+  if (!isOpen) return null
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          zIndex: 1000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+        onClick={onClose}
+      >
+        {/* Modal */}
+        <div
+          style={{
+            backgroundColor: 'var(--background)',
+            borderRadius: '12px',
+            width: '500px',
+            maxWidth: '90vw',
+            maxHeight: '80vh',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+            border: '1px solid var(--border)',
+            overflow: 'hidden'
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '20px 24px',
+            borderBottom: '1px solid var(--border)'
+          }}>
+            <h2 style={{
+              fontSize: '18px',
+              fontWeight: 600,
+              margin: 0,
+              color: 'var(--foreground)'
+            }}>
+              Settings
+            </h2>
+            <button
+              onClick={onClose}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '6px',
+                borderRadius: '6px',
+                color: 'var(--muted-foreground)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.background = 'var(--secondary)'
+                e.currentTarget.style.color = 'var(--foreground)'
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.background = 'none'
+                e.currentTarget.style.color = 'var(--muted-foreground)'
+              }}
+            >
+              <X size={18} />
+            </button>
+          </div>
+
+          {/* Content */}
+          <div style={{ padding: '24px' }}>
+            {/* Custom Command Section */}
+            <div style={{ marginBottom: '24px' }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                marginBottom: '8px'
+              }}>
+                <label style={{
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  color: 'var(--foreground)'
+                }}>
+                  Custom Resume Command
+                </label>
+                {!isDefault && (
+                  <button
+                    onClick={handleReset}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: '4px',
+                      borderRadius: '4px',
+                      color: 'var(--muted-foreground)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontSize: '12px'
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.background = 'var(--secondary)'
+                      e.currentTarget.style.color = 'var(--foreground)'
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.background = 'none'
+                      e.currentTarget.style.color = 'var(--muted-foreground)'
+                    }}
+                    title="Reset to default"
+                  >
+                    <RotateCcw size={12} />
+                    Reset
+                  </button>
+                )}
+              </div>
+              
+              <textarea
+                value={customCommand}
+                onChange={(e) => handleCommandChange(e.target.value)}
+                placeholder="Enter custom command template..."
+                style={{
+                  width: '100%',
+                  minHeight: '80px',
+                  padding: '12px',
+                  border: '1px solid var(--border)',
+                  borderRadius: '8px',
+                  backgroundColor: 'var(--background)',
+                  color: 'var(--foreground)',
+                  fontSize: '13px',
+                  fontFamily: 'SF Mono, Monaco, Cascadia Code, monospace',
+                  resize: 'vertical',
+                  outline: 'none'
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--accent)'
+                  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(var(--accent-rgb), 0.1)'
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--border)'
+                  e.currentTarget.style.boxShadow = 'none'
+                }}
+              />
+
+              {/* Help text */}
+              <div style={{
+                marginTop: '8px',
+                padding: '12px',
+                backgroundColor: 'var(--secondary)',
+                borderRadius: '6px',
+                border: '1px solid var(--border)'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '8px'
+                }}>
+                  <Info size={14} style={{ 
+                    color: 'var(--muted-foreground)', 
+                    marginTop: '1px',
+                    flexShrink: 0 
+                  }} />
+                  <div>
+                    <div style={{
+                      fontSize: '12px',
+                      fontWeight: 500,
+                      color: 'var(--foreground)',
+                      marginBottom: '4px'
+                    }}>
+                      Available variables:
+                    </div>
+                    <div style={{
+                      fontSize: '11px',
+                      color: 'var(--muted-foreground)',
+                      fontFamily: 'SF Mono, Monaco, Cascadia Code, monospace',
+                      lineHeight: '1.4'
+                    }}>
+                      <div><code>{'{projectPath}'}</code> - Full project directory path</div>
+                      <div><code>{'{sessionId}'}</code> - Session ID</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            gap: '12px',
+            padding: '20px 24px',
+            borderTop: '1px solid var(--border)',
+            backgroundColor: 'var(--bg-100)'
+          }}>
+            <button
+              onClick={onClose}
+              style={{
+                padding: '8px 16px',
+                border: '1px solid var(--border)',
+                borderRadius: '6px',
+                backgroundColor: 'var(--background)',
+                color: 'var(--foreground)',
+                fontSize: '13px',
+                cursor: 'pointer',
+                fontWeight: 500
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.backgroundColor = 'var(--secondary)'
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.backgroundColor = 'var(--background)'
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              style={{
+                padding: '8px 16px',
+                border: 'none',
+                borderRadius: '6px',
+                backgroundColor: 'var(--accent)',
+                color: 'white',
+                fontSize: '13px',
+                cursor: 'pointer',
+                fontWeight: 500
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.opacity = '0.9'
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.opacity = '1'
+              }}
+            >
+              Save
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
+  )
+}

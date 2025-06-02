@@ -1,11 +1,13 @@
-import React from 'react'
-import { X, Plus, Sun, Moon, BarChart3, Folder } from 'lucide-react'
+import React, { useState } from 'react'
+import { X, Plus, Sun, Moon, BarChart3, Folder, Settings } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useAppStore } from '@/store/appStore'
+import { SettingsModal } from '../Settings/SettingsModal'
 
 export const TabBar: React.FC = () => {
   const { tabs, activeTabId, setActiveTab, removeTab, addTab, sidebarCollapsed, sidebarWidth } = useAppStore()
   const { theme, setTheme } = useTheme()
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   
   const handleNewTab = () => {
     // Create a new empty tab
@@ -111,6 +113,13 @@ export const TabBar: React.FC = () => {
         } as React.CSSProperties}>
           <button
             className="btn-icon"
+            onClick={() => setIsSettingsOpen(true)}
+            title="Settings"
+          >
+            <Settings size={16} />
+          </button>
+          <button
+            className="btn-icon"
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
             title="Toggle theme"
           >
@@ -118,6 +127,11 @@ export const TabBar: React.FC = () => {
           </button>
         </div>
       </div>
+      
+      <SettingsModal 
+        isOpen={isSettingsOpen} 
+        onClose={() => setIsSettingsOpen(false)} 
+      />
     </div>
   )
 }

@@ -15,11 +15,8 @@ export const SessionViewer: React.FC<SessionViewerProps> = ({ tab }) => {
   const [autoScroll, setAutoScroll] = useState(true)
   const [currentMessageIndex, setCurrentMessageIndex] = useState<number | undefined>()
   const [copied, setCopied] = useState(false)
-  const [showTooltip, setShowTooltip] = useState(false)
-  const [customCommand, setCustomCommand] = useState<string | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const messageRefs = useRef<(HTMLDivElement | null)[]>([])
-  const tooltipTimeoutRef = useRef<NodeJS.Timeout>()
   const sessionMessages = messages[tab.sessionId] || []
   
   // Find the session details from all project sessions
@@ -37,21 +34,14 @@ export const SessionViewer: React.FC<SessionViewerProps> = ({ tab }) => {
   console.log('[SessionViewer] Available sessions by project:', sessionsByProject)
   console.log('[SessionViewer] Found session:', session)
   
-  // Load custom command from localStorage
-  useEffect(() => {
-    const savedCommand = localStorage.getItem('claude-viewer-custom-command')
-    if (savedCommand) {
-      setCustomCommand(savedCommand)
-    }
-  }, [])
-  
   const handleCopyCommand = () => {
     if (!session || !tab.actualProjectPath) return
     
     const projectPath = tab.actualProjectPath
     const sessionId = tab.sessionId
     
-    // Use custom command template or default
+    // Get custom command from localStorage
+    const customCommand = localStorage.getItem('claude-viewer-custom-command')
     const template = customCommand || 'cd {projectPath} && claude --resume {sessionId}'
     const command = template
       .replace('{projectPath}', projectPath)
@@ -60,31 +50,6 @@ export const SessionViewer: React.FC<SessionViewerProps> = ({ tab }) => {
     navigator.clipboard.writeText(command)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
-  }
-  
-  const handleMouseEnter = () => {
-    tooltipTimeoutRef.current = setTimeout(() => {
-      setShowTooltip(true)
-    }, 1500) // Show tooltip after 1.5 seconds
-  }
-  
-  const handleMouseLeave = () => {
-    if (tooltipTimeoutRef.current) {
-      clearTimeout(tooltipTimeoutRef.current)
-    }
-    setShowTooltip(false)
-  }
-  
-  const handleRightClick = (e: React.MouseEvent) => {
-    e.preventDefault()
-    const newCommand = prompt(
-      'Enter custom command template:\n\nAvailable variables:\n{projectPath} - Full project path\n{sessionId} - Session ID\n\nExample: cd {projectPath} && claude --resume {sessionId}',
-      customCommand || 'cd {projectPath} && claude --resume {sessionId}'
-    )
-    if (newCommand !== null) {
-      setCustomCommand(newCommand)
-      localStorage.setItem('claude-viewer-custom-command', newCommand)
-    }
   }
   
   useEffect(() => {
@@ -234,67 +199,32 @@ export const SessionViewer: React.FC<SessionViewerProps> = ({ tab }) => {
             gap: '8px'
           }}>
             <span>{tab.sessionId}</span>
-              <div style={{ position: 'relative' }}>
-                <button
-                  onClick={handleCopyCommand}
-                  onMouseEnter={handleMouseEnter}
-                  onMouseLeave={handleMouseLeave}
-                  onContextMenu={handleRightClick}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: '4px',
-                    borderRadius: '4px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: copied ? 'var(--accent)' : 'var(--muted-foreground)',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseOver={(e) => {
-                    e.currentTarget.style.background = 'var(--secondary)'
-                    e.currentTarget.style.color = 'var(--foreground)'
-                  }}
-                  onMouseOut={(e) => {
-                    e.currentTarget.style.background = 'none'
-                    e.currentTarget.style.color = copied ? 'var(--accent)' : 'var(--muted-foreground)'
-                  }}
-                  title="Copy resume command"
-                >
-                  {copied ? <Check size={14} /> : <Copy size={14} />}
-                </button>
-                {showTooltip && (
-                  <div style={{
-                    position: 'absolute',
-                    bottom: '100%',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    marginBottom: '8px',
-                    padding: '8px 12px',
-                    background: 'var(--foreground)',
-                    color: 'var(--background)',
-                    borderRadius: '6px',
-                    fontSize: '12px',
-                    whiteSpace: 'nowrap',
-                    zIndex: 1000,
-                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)'
-                  }}>
-                    Right-click to customize command
-                    <div style={{
-                      position: 'absolute',
-                      top: '100%',
-                      left: '50%',
-                      transform: 'translateX(-50%)',
-                      width: 0,
-                      height: 0,
-                      borderLeft: '4px solid transparent',
-                      borderRight: '4px solid transparent',
-                      borderTop: '4px solid var(--foreground)'
-                    }} />
-                  </div>
-                )}
-              </div>
+              <button
+                onClick={handleCopyCommand}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  borderRadius: '4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: copied ? 'var(--accent)' : 'var(--muted-foreground)',
+                  transition: 'all 0.2s'
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.background = 'var(--secondary)'
+                  e.currentTarget.style.color = 'var(--foreground)'
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.background = 'none'
+                  e.currentTarget.style.color = copied ? 'var(--accent)' : 'var(--muted-foreground)'
+                }}
+                title="Copy resume command"
+              >
+                {copied ? <Check size={14} /> : <Copy size={14} />}
+              </button>
             </div>
         </div>
         <div style={{
