@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, shell, protocol } from 'electron'
+import { app, BrowserWindow, ipcMain, shell, protocol, Menu } from 'electron'
 import { join } from 'path'
 import { homedir } from 'os'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
@@ -8,6 +8,7 @@ import { installCLI } from './cliInstaller'
 
 let mainWindow: BrowserWindow | null = null
 let deepLinkUrl: string | null = null
+const windows = new Set<BrowserWindow>()
 
 // Deep link protocol 설정
 const PROTOCOL_PREFIX = 'claude-viewer'
@@ -28,12 +29,165 @@ function parseDeepLink(url: string): { sessionId?: string; projectPath?: string;
   }
 }
 
-function createWindow(): void {
-  mainWindow = new BrowserWindow({
+function createMenu(): void {
+  const template: Electron.MenuItemConstructorOptions[] = [
+    {
+      label: 'File',
+      submenu: [
+        {
+          label: 'New Window',
+          accelerator: 'Cmd+N',
+          click: () => {
+            createWindow()
+          }
+        },
+        {
+          label: 'New Tab',
+          accelerator: 'Cmd+T',
+          click: () => {
+            // Send to focused window
+            const focusedWindow = BrowserWindow.getFocusedWindow()
+            if (focusedWindow) {
+              focusedWindow.webContents.send('menu-new-tab')
+            }
+          }
+        },
+        {
+          label: 'Close Tab',
+          accelerator: 'Cmd+W',
+          click: () => {
+            const focusedWindow = BrowserWindow.getFocusedWindow()
+            if (focusedWindow) {
+              focusedWindow.webContents.send('menu-close-tab')
+            }
+          }
+        },
+        { type: 'separator' },
+        {
+          label: 'Close Window',
+          accelerator: 'Cmd+Shift+W',
+          click: () => {
+            const focusedWindow = BrowserWindow.getFocusedWindow()
+            if (focusedWindow) {
+              focusedWindow.close()
+            }
+          }
+        }
+      ]
+    },
+    {
+      label: 'Edit',
+      submenu: [
+        { label: 'Undo', accelerator: 'Cmd+Z', role: 'undo' },
+        { label: 'Redo', accelerator: 'Shift+Cmd+Z', role: 'redo' },
+        { type: 'separator' },
+        { label: 'Cut', accelerator: 'Cmd+X', role: 'cut' },
+        { label: 'Copy', accelerator: 'Cmd+C', role: 'copy' },
+        { label: 'Paste', accelerator: 'Cmd+V', role: 'paste' },
+        { label: 'Select All', accelerator: 'Cmd+A', role: 'selectAll' }
+      ]
+    },
+    {
+      label: 'View',
+      submenu: [
+        {
+          label: 'Toggle Sidebar',
+          accelerator: 'Cmd+B',
+          click: () => {
+            const focusedWindow = BrowserWindow.getFocusedWindow()
+            if (focusedWindow) {
+              focusedWindow.webContents.send('menu-toggle-sidebar')
+            }
+          }
+        },
+        { type: 'separator' },
+        {
+          label: 'Zoom In',
+          accelerator: 'Cmd+Plus',
+          click: () => {
+            const focusedWindow = BrowserWindow.getFocusedWindow()
+            if (focusedWindow) {
+              focusedWindow.webContents.send('menu-zoom-in')
+            }
+          }
+        },
+        {
+          label: 'Zoom Out',
+          accelerator: 'Cmd+-',
+          click: () => {
+            const focusedWindow = BrowserWindow.getFocusedWindow()
+            if (focusedWindow) {
+              focusedWindow.webContents.send('menu-zoom-out')
+            }
+          }
+        },
+        {
+          label: 'Reset Zoom',
+          accelerator: 'Cmd+0',
+          click: () => {
+            const focusedWindow = BrowserWindow.getFocusedWindow()
+            if (focusedWindow) {
+              focusedWindow.webContents.send('menu-zoom-reset')
+            }
+          }
+        },
+        { type: 'separator' },
+        { label: 'Reload', accelerator: 'Cmd+R', role: 'reload' },
+        { label: 'Force Reload', accelerator: 'Cmd+Shift+R', role: 'forceReload' },
+        { type: 'separator' },
+        { label: 'Toggle Developer Tools', accelerator: 'F12', role: 'toggleDevTools' }
+      ]
+    },
+    {
+      label: 'Window',
+      submenu: [
+        { label: 'Minimize', accelerator: 'Cmd+M', role: 'minimize' },
+        { label: 'Close', accelerator: 'Cmd+W', role: 'close' }
+      ]
+    }
+  ]
+
+  if (process.platform === 'darwin') {
+    // macOS specific menu
+    template.unshift({
+      label: app.getName(),
+      submenu: [
+        { label: 'About ' + app.getName(), role: 'about' },
+        { type: 'separator' },
+        { label: 'Services', role: 'services', submenu: [] },
+        { type: 'separator' },
+        { label: 'Hide ' + app.getName(), accelerator: 'Cmd+H', role: 'hide' },
+        { label: 'Hide Others', accelerator: 'Cmd+Shift+H', role: 'hideOthers' },
+        { label: 'Show All', role: 'unhide' },
+        { type: 'separator' },
+        { label: 'Quit', accelerator: 'Cmd+Q', role: 'quit' }
+      ]
+    })
+
+    // Window menu adjustments for macOS
+    const windowMenu = template.find(menu => menu.label === 'Window')
+    if (windowMenu && windowMenu.submenu && Array.isArray(windowMenu.submenu)) {
+      windowMenu.submenu = [
+        { label: 'Minimize', accelerator: 'Cmd+M', role: 'minimize' },
+        { label: 'Zoom', role: 'zoom' },
+        { type: 'separator' },
+        { label: 'Bring All to Front', role: 'front' },
+        { type: 'separator' },
+        { label: 'Close', accelerator: 'Cmd+W', role: 'close' }
+      ]
+    }
+  }
+
+  const menu = Menu.buildFromTemplate(template)
+  Menu.setApplicationMenu(menu)
+}
+
+function createWindow(deepLink?: string): void {
+  const window = new BrowserWindow({
     width: 1200,
     height: 800,
-    minWidth: 600,
-    minHeight: 400,
+    minWidth: 400,
+    minHeight: 300,
     show: false,
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 20, y: 20 },
@@ -45,66 +199,83 @@ function createWindow(): void {
     }
   })
 
-  mainWindow.on('ready-to-show', () => {
-    mainWindow?.show()
+  windows.add(window)
+  
+  window.on('ready-to-show', () => {
+    window.show()
     
     // 개발 모드에서는 개발자 도구 자동 열기
     if (is.dev) {
-      mainWindow?.webContents.openDevTools()
+      window.webContents.openDevTools()
+    }
+  })
+  
+  window.on('closed', () => {
+    windows.delete(window)
+    if (window === mainWindow) {
+      mainWindow = null
     }
   })
 
-  mainWindow.webContents.setWindowOpenHandler((details) => {
+  window.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
     return { action: 'deny' }
   })
 
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-    mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
+    window.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
-    mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
+    window.loadFile(join(__dirname, '../renderer/index.html'))
+  }
+  
+  if (!mainWindow) {
+    mainWindow = window
   }
 
   // Deep link가 있으면 처리
-  if (deepLinkUrl) {
-    handleDeepLink(deepLinkUrl)
-    deepLinkUrl = null
+  if (deepLink || deepLinkUrl) {
+    handleDeepLink(deepLink || deepLinkUrl!, window)
+    if (deepLinkUrl) deepLinkUrl = null
   }
+  
+  return window
 }
 
 // Deep link 처리 함수
-function handleDeepLink(url: string) {
+function handleDeepLink(url: string, targetWindow?: BrowserWindow) {
   const params = parseDeepLink(url)
   console.log('Handling deep link:', params)
   
-  if (!mainWindow) {
-    console.log('Main window not ready, storing deep link for later')
+  const window = targetWindow || mainWindow
+  
+  if (!window) {
+    console.log('No window available, storing deep link for later')
     deepLinkUrl = url
     return
   }
   
-  if (params.sessionId) {
+  if (params.sessionId || params.projectPath) {
     // 창을 포커스하고 보이게 하기
     try {
-      if (mainWindow.isDestroyed()) {
+      if (window.isDestroyed()) {
         console.log('Window is destroyed, cannot handle deep link')
         return
       }
       
-      if (mainWindow.isMinimized()) mainWindow.restore()
-      mainWindow.show()
-      mainWindow.focus()
+      if (window.isMinimized()) window.restore()
+      window.show()
+      window.focus()
       
       // webContents가 준비될 때까지 기다린 후 전송
-      if (mainWindow.webContents.isLoading()) {
+      if (window.webContents.isLoading()) {
         console.log('Window is still loading, waiting...')
-        mainWindow.webContents.once('did-finish-load', () => {
+        window.webContents.once('did-finish-load', () => {
           console.log('Window loaded! Sending deep link to renderer:', params)
-          if (!mainWindow?.isDestroyed()) {
-            mainWindow!.webContents.send('deep-link-open', params)
+          if (!window.isDestroyed()) {
+            window.webContents.send('deep-link-open', params)
             
             // 디버깅: 렌더러 프로세스에서 콘솔 로그 실행
-            mainWindow!.webContents.executeJavaScript(`
+            window.webContents.executeJavaScript(`
               console.log('[Renderer] Received deep-link-open event');
               console.log('[Renderer] Window.api available:', !!window.api);
               console.log('[Renderer] Current URL:', window.location.href);
@@ -113,10 +284,10 @@ function handleDeepLink(url: string) {
         })
       } else {
         console.log('Window is ready, sending deep link to renderer:', params)
-        mainWindow.webContents.send('deep-link-open', params)
+        window.webContents.send('deep-link-open', params)
         
         // 디버깅: 렌더러 프로세스에서 콘솔 로그 실행
-        mainWindow.webContents.executeJavaScript(`
+        window.webContents.executeJavaScript(`
           console.log('[Renderer] Received deep-link-open event');
           console.log('[Renderer] Window.api available:', !!window.api);
           console.log('[Renderer] Current URL:', window.location.href);
@@ -145,15 +316,15 @@ if (!gotTheLock) {
 } else {
   app.on('second-instance', (_, commandLine) => {
     // 이미 실행 중인 인스턴스가 있을 때
-    if (mainWindow) {
+    // Deep link URL 찾기
+    const url = commandLine.find((arg) => arg.startsWith(`${PROTOCOL_PREFIX}://`))
+    if (url) {
+      // Deep link가 있으면 새 창에서 열기
+      createWindow(url)
+    } else if (mainWindow) {
+      // Deep link가 없으면 기존 창 활성화
       if (mainWindow.isMinimized()) mainWindow.restore()
       mainWindow.focus()
-      
-      // Deep link URL 찾기
-      const url = commandLine.find((arg) => arg.startsWith(`${PROTOCOL_PREFIX}://`))
-      if (url) {
-        handleDeepLink(url)
-      }
     }
   })
 }
@@ -169,7 +340,10 @@ app.on('open-url', (event, url) => {
 })
 
 app.whenReady().then(() => {
-  electronApp.setAppUserModelId('com.claude.session-viewer')
+  electronApp.setAppUserModelId('com.mainpy.claude-code-viewer')
+
+  // 메뉴 생성
+  createMenu()
 
   // CLI 설치 시도 (macOS만)
   if (process.platform === 'darwin' && app.isPackaged) {
@@ -215,9 +389,10 @@ ipcMain.handle('fs:readFile', async (_, path: string) => {
   return readSessionFile(path)
 })
 
-ipcMain.on('fs:watchFile', (_, path: string) => {
-  if (mainWindow) {
-    watchFile(path, mainWindow)
+ipcMain.on('fs:watchFile', (event, path: string) => {
+  const window = BrowserWindow.fromWebContents(event.sender)
+  if (window) {
+    watchFile(path, window)
   }
 })
 
