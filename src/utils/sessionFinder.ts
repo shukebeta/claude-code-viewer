@@ -2,6 +2,7 @@ import * as fs from 'fs'
 import * as path from 'path'
 import * as os from 'os'
 import { execSync } from 'child_process'
+import { pathToProjectName } from './projectPathUtils'
 
 interface SessionInfo {
   sessionId: string
@@ -30,18 +31,10 @@ export class SessionFinder {
   }
 
   /**
-   * 디렉토리 경로를 프로젝트 폴더명으로 변환
-   * 예: /Users/lullu/claude-work -> -Users-lullu-claude-work
-   */
-  pathToProjectName(dirPath: string): string {
-    return dirPath.replace(/\//g, '-').replace(/_/g, '-')
-  }
-
-  /**
    * 현재 경로에 맞는 프로젝트 폴더 찾기
    */
   findMatchingProject(pwd: string): string | null {
-    const projectName = this.pathToProjectName(pwd)
+    const projectName = pathToProjectName(pwd)
     const projectPath = path.join(this.claudeProjectsPath, projectName)
 
     if (fs.existsSync(projectPath) && fs.statSync(projectPath).isDirectory()) {
@@ -49,7 +42,7 @@ export class SessionFinder {
     }
 
     // 디버깅용 - 사용 가능한 프로젝트 출력
-    console.log(`Looking for project: ${projectName}`)
+    console.log(`Looking for project: ${pathToProjectName(pwd)}`)
     console.log('Available projects:')
     try {
       const projects = fs.readdirSync(this.claudeProjectsPath)

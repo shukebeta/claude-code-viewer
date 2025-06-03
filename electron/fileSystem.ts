@@ -1,6 +1,7 @@
 import { promises as fs } from 'fs'
 import { join, basename } from 'path'
 import { homedir } from 'os'
+import { resolveProjectPath } from './pathResolver'
 
 export interface Project {
   name: string
@@ -42,8 +43,11 @@ export async function getProjects(): Promise<Project[]> {
         const sessions = await fs.readdir(projectPath)
         const sessionFiles = sessions.filter(f => f.endsWith('.jsonl'))
         
+        // 정확한 경로 복원
+        const resolvedPath = resolveProjectPath(entry.name)
+        
         projects.push({
-          name: entry.name.replace(/-/g, '/'),
+          name: resolvedPath,
           path: projectPath,
           sessionCount: sessionFiles.length
         })
