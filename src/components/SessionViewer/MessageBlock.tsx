@@ -5,6 +5,7 @@ import { ChevronRight, ChevronDown } from 'lucide-react'
 import { CodeBlock } from './CodeBlock'
 import { CollapsibleMessage } from './CollapsibleMessage'
 import { ToolRenderer } from '../Tools/ToolRenderer'
+import { ToolRow } from '../Tools/ToolRow'
 import { formatTime } from '@/utils/formatters'
 import { Message } from '@/types'
 
@@ -24,10 +25,29 @@ export const MessageBlock: React.FC<MessageBlockProps> = ({ message }) => {
   }
 
   const isToolMessage = () => {
-    return message.type === 'tool' || 
-           message.toolUseResult || 
-           (message.message?.content && Array.isArray(message.message.content) && 
-            message.message.content.some((item: any) => item.type === 'tool_use'))
+    // Check if it's explicitly a tool type
+    if (message.type === 'tool') return true
+    
+    // Check if it has tool result data
+    if (message.toolUseResult) return true
+    
+    // Check if message content contains tool_use
+    if (message.message?.content && Array.isArray(message.message.content)) {
+      const hasToolUse = message.message.content.some((item: any) => item.type === 'tool_use')
+      if (hasToolUse) return true
+    }
+    
+    // Check if it's an empty user/assistant message with tool-like content in other fields
+    if ((message.type === 'user' || message.type === 'assistant') && 
+        (!message.message?.content || 
+         (Array.isArray(message.message.content) && message.message.content.length === 0) ||
+         (typeof message.message.content === 'string' && !message.message.content))) {
+      // Check for tool indicators in other fields
+      if (message.tool || message.toolName || message.name) return true
+      if (message.content && typeof message.content === 'object') return true
+    }
+    
+    return false
   }
 
   const getMessageContent = () => {
@@ -36,9 +56,10 @@ export const MessageBlock: React.FC<MessageBlockProps> = ({ message }) => {
       // Extract tool info from message structure
       let toolName = ''
       let parameters = null
-      let result = message.toolUseResult
+      let result = null
       let error = null
 
+      // First priority: Check message.content for tool_use
       if (message.message?.content && Array.isArray(message.message.content)) {
         const toolUse = message.message.content.find((item: any) => item.type === 'tool_use')
         if (toolUse) {
@@ -47,29 +68,77 @@ export const MessageBlock: React.FC<MessageBlockProps> = ({ message }) => {
         }
       }
       
-      // Try to extract tool name from other possible locations
-      if (!toolName && message.tool) {
-        toolName = message.tool
-      }
-      if (!toolName && message.toolName) {
-        toolName = message.toolName
-      }
-      if (!toolName && message.name) {
-        toolName = message.name
+      // Check for direct content field
+      if (message.content) {
+        if (typeof message.content === 'object') {
+          // Handle tool invocation structure
+          if (message.content.type === 'tool_use' && message.content.name) {
+            toolName = message.content.name
+            parameters = message.content.input
+          }
+          // Handle tool result structure
+          else if (message.content.type === 'tool_result') {
+            result = message.content
+          }
+          // Direct content as parameters or result
+          else if (!parameters) {
+            parameters = message.content
+          }
+        }
       }
       
-      // If still no tool name found, use a generic name
+      // Check for result in toolUseResult
+      if (message.toolUseResult) {
+        result = message.toolUseResult
+      }
+      
+      // Try to extract tool name from other possible locations
       if (!toolName) {
-        toolName = 'Tool'
+        toolName = message.tool || message.toolName || message.name || ''
+      }
+      
+      // If we have a result but no toolName, try to infer from result structure
+      if (!toolName && result) {
+        if (result.filePath) {
+          toolName = 'Edit' // File operations are usually Edit
+        } else if (result.output && typeof result.output === 'string') {
+          toolName = 'Bash' // Command output is usually Bash
+        } else if (result.type === 'text' && result.file) {
+          toolName = 'Read' // File reading
+        }
+      }
+      
+      // According to spec FR3.2.1, if no tool name found, don't render as Tool Row
+      if (!toolName || toolName === 'Tool') {
+        return null
+      }
+      
+      // Check for error
+      if (message.error || result?.error) {
+        error = message.error || result.error
+      }
+      
+      // Determine status
+      let status: 'loading' | 'success' | 'error' = 'success'
+      if (error) {
+        status = 'error'
+      } else if (!result && parameters) {
+        status = 'loading'
       }
 
+      // Check if this message is inside a ToolGroup
+      const isInToolGroup = message.isInToolGroup || false
+      
       return (
-        <ToolRenderer
+        <ToolRow
           toolName={toolName}
           parameters={parameters}
           result={result}
           error={error}
-          compact={true}
+          timestamp={message.timestamp}
+          costUSD={message.costUSD}
+          status={status}
+          hideStatusDot={isInToolGroup}
         />
       )
     }
@@ -221,11 +290,12 @@ export const MessageBlock: React.FC<MessageBlockProps> = ({ message }) => {
 
   // Tool messages - just render the content directly, it already has its own UI
   if (isToolMessage()) {
-    return (
-      <div className="tool-message-compact" style={{ margin: '4px 0' }}>
-        {getMessageContent()}
-      </div>
-    )
+    const toolContent = getMessageContent()
+    // Only render if we have valid tool content
+    if (toolContent) {
+      return toolContent
+    }
+    // If no valid tool content, fall through to regular message rendering
   }
 
   return (

@@ -30,15 +30,41 @@ export const SessionList: React.FC = () => {
     return acc
   }, {} as Record<string, typeof sessions>)
   
+  // Sort sessions within each date group by startTime (most recent first)
+  Object.keys(sessionsByDate).forEach(dateKey => {
+    sessionsByDate[dateKey].sort((a, b) => {
+      const timeA = a.startTime ? new Date(a.startTime).getTime() : 0
+      const timeB = b.startTime ? new Date(b.startTime).getTime() : 0
+      return timeB - timeA // Descending order (most recent first)
+    })
+  })
+  
   console.log('SessionsByDate:', sessionsByDate)
   
-  // Sort dates with "Unknown Date" always at the bottom
+  // Sort dates with custom logic for Today, Yesterday, etc.
+  const getDatePriority = (dateStr: string): number => {
+    if (dateStr === 'Today') return 0
+    if (dateStr === 'Yesterday') return 1
+    if (dateStr.includes('days ago')) {
+      const days = parseInt(dateStr.split(' ')[0])
+      return 1 + days
+    }
+    if (dateStr === 'Unknown Date') return 10000
+    // For actual dates, calculate days from now
+    const date = new Date(dateStr)
+    const now = new Date()
+    const diffInDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24))
+    return 100 + diffInDays
+  }
+  
   const sortedDates = Object.keys(sessionsByDate).sort((a, b) => {
-    if (a === 'Unknown Date') return 1
-    if (b === 'Unknown Date') return -1
-    // For actual dates, sort in descending order (newest first)
-    return new Date(b).getTime() - new Date(a).getTime()
+    const priorityA = getDatePriority(a)
+    const priorityB = getDatePriority(b)
+    console.log(`Sorting: "${a}" (priority: ${priorityA}) vs "${b}" (priority: ${priorityB})`)
+    return priorityA - priorityB
   })
+  
+  console.log('Final sorted dates:', sortedDates)
   
   return (
     <div style={{ padding: '4px' }}>

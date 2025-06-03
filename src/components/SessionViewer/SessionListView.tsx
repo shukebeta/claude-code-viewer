@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { Clock, DollarSign, MessageSquare, Folder } from 'lucide-react'
 import { useAppStore } from '@/store/appStore'
 import { formatTime, formatDate, formatCurrency } from '@/utils/formatters'
@@ -9,6 +9,13 @@ export const SessionListView: React.FC = () => {
   const [hoveredSession, setHoveredSession] = useState<string | null>(null)
   const [previewPosition, setPreviewPosition] = useState({ x: 0, y: 0, width: 0, height: 0 })
   const hoverTimeoutRef = useRef<NodeJS.Timeout>()
+  const [showSessionPreview, setShowSessionPreview] = useState(true)
+  
+  // Load session preview setting
+  useEffect(() => {
+    const savedPreviewSetting = localStorage.getItem('claude-viewer-show-session-preview')
+    setShowSessionPreview(savedPreviewSetting !== 'false') // Default to true
+  }, [])
   
   const selectedProject = projects.find(p => p.path === selectedProjectPath)
   
@@ -21,6 +28,8 @@ export const SessionListView: React.FC = () => {
   }
 
   const handleMouseEnter = (session: any, event: React.MouseEvent) => {
+    if (!showSessionPreview) return // Don't show preview if disabled
+    
     if (hoverTimeoutRef.current) {
       clearTimeout(hoverTimeoutRef.current)
     }
@@ -245,7 +254,7 @@ export const SessionListView: React.FC = () => {
       </div>
       
       {/* Session Preview Overlay */}
-      {hoveredSession && (
+      {hoveredSession && showSessionPreview && (
         <SessionPreview
           sessionId={hoveredSession}
           sessionFilePath={sessions.find(s => s.id === hoveredSession)?.filePath || ''}

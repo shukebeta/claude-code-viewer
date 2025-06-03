@@ -11,6 +11,7 @@ const DEFAULT_COMMAND = 'cd {projectPath} && claude --resume {sessionId}'
 export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   const [customCommand, setCustomCommand] = useState('')
   const [isDefault, setIsDefault] = useState(true)
+  const [showSessionPreview, setShowSessionPreview] = useState(true)
 
   useEffect(() => {
     if (isOpen) {
@@ -22,11 +23,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
         setCustomCommand(DEFAULT_COMMAND)
         setIsDefault(true)
       }
+      
+      // Load session preview setting
+      const savedPreviewSetting = localStorage.getItem('claude-viewer-show-session-preview')
+      setShowSessionPreview(savedPreviewSetting !== 'false') // Default to true
     }
   }, [isOpen])
 
   const handleSave = () => {
     localStorage.setItem('claude-viewer-custom-command', customCommand)
+    localStorage.setItem('claude-viewer-show-session-preview', showSessionPreview.toString())
     onClose()
   }
 
@@ -229,6 +235,69 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
+            
+            {/* Session Preview Toggle */}
+            <div style={{ marginBottom: '24px' }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '16px',
+                backgroundColor: 'var(--secondary)',
+                borderRadius: '8px',
+                border: '1px solid var(--border)'
+              }}>
+                <div>
+                  <div style={{
+                    fontSize: '14px',
+                    fontWeight: 500,
+                    color: 'var(--foreground)',
+                    marginBottom: '4px'
+                  }}>
+                    Session Preview
+                  </div>
+                  <div style={{
+                    fontSize: '12px',
+                    color: 'var(--muted-foreground)'
+                  }}>
+                    Show session preview overlay on hover
+                  </div>
+                </div>
+                <label style={{
+                  position: 'relative',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  cursor: 'pointer'
+                }}>
+                  <input
+                    type="checkbox"
+                    checked={showSessionPreview}
+                    onChange={(e) => setShowSessionPreview(e.target.checked)}
+                    style={{ display: 'none' }}
+                  />
+                  <div style={{
+                    width: '44px',
+                    height: '24px',
+                    backgroundColor: showSessionPreview ? 'hsl(var(--accent-main-000))' : 'hsl(var(--text-500))',
+                    borderRadius: '12px',
+                    position: 'relative',
+                    transition: 'background-color 0.2s'
+                  }}>
+                    <div style={{
+                      width: '18px',
+                      height: '18px',
+                      backgroundColor: 'white',
+                      borderRadius: '50%',
+                      position: 'absolute',
+                      top: '3px',
+                      left: showSessionPreview ? '23px' : '3px',
+                      transition: 'left 0.2s',
+                      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.15)'
+                    }} />
+                  </div>
+                </label>
               </div>
             </div>
           </div>

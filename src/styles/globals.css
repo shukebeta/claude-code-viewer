@@ -196,6 +196,15 @@ body {
   }
 }
 
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
 .animate-fadeIn {
   animation: fadeIn 0.2s ease-out;
 }
@@ -253,17 +262,19 @@ body {
 
 .message-timestamp {
   font-size: 11px;
-  color: var(--muted-foreground);
-  font-family: 'SF Mono', 'Monaco', 'Cascadia Code', monospace;
+  color: hsl(var(--text-400));
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+  opacity: 0.8;
 }
 
 .message-cost {
   font-size: 11px;
-  color: hsl(var(--text-400));
+  color: hsl(var(--text-300));
   background: hsl(var(--bg-200));
-  padding: 2px 6px;
-  border-radius: 3px;
-  font-family: 'SF Mono', 'Monaco', 'Cascadia Code', monospace;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+  font-weight: 500;
 }
 
 .message-content {
@@ -280,8 +291,8 @@ body {
 }
 
 .message-content.tool {
-  font-family: 'SF Mono', 'Monaco', 'Cascadia Code', monospace;
-  font-size: 13px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+  font-size: 14px;
   padding-left: 0;
 }
 
@@ -300,9 +311,39 @@ body {
 }
 
 /* Tool component styles */
+.tool-row {
+  transition: all 0.15s ease;
+}
+
+.tool-row:hover {
+  background: hsl(var(--bg-200) / 0.8) !important;
+  border-color: hsl(var(--border-200)) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.dark .tool-row:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.tool-row:active {
+  transform: translateY(0);
+  transition: transform 0.05s ease;
+}
+
+/* Tool animation improvements */
+.status-loading {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Tool preview enhancement */
+.tool-preview {
+  animation: fadeIn 0.15s ease-out;
+}
+
 .tool-container {
   border: 1px solid hsl(var(--border-100));
-  border-radius: 6px;
+  border-radius: 8px;
   margin: 8px 0;
   overflow: hidden;
 }
@@ -310,7 +351,7 @@ body {
 .tool-header {
   background: hsl(var(--bg-100));
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition: background 0.15s ease;
 }
 
 .tool-header:hover {

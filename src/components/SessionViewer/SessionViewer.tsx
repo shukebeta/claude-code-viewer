@@ -3,6 +3,7 @@ import { useAppStore } from '@/store/appStore'
 import { Message, Tab } from '@/types'
 import { MessageBlock } from './MessageBlock'
 import { Timeline } from './Timeline'
+import { ToolGroup } from './ToolGroup'
 import { Copy, Check, Settings } from 'lucide-react'
 
 interface SessionViewerProps {
@@ -18,6 +19,90 @@ export const SessionViewer: React.FC<SessionViewerProps> = ({ tab }) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const messageRefs = useRef<(HTMLDivElement | null)[]>([])
   const sessionMessages = messages[tab.sessionId] || []
+  
+  // Process messages to merge tool calls and results
+  const processedMessages = React.useMemo(() => {
+    const result: Message[] = []
+    const pendingToolCalls = new Map<string, Message>()
+    
+    sessionMessages.forEach((message) => {
+      // Check if this is a tool invocation
+      if (message.message?.content && Array.isArray(message.message.content)) {
+        const toolUse = message.message.content.find((item: any) => item.type === 'tool_use')
+        if (toolUse && toolUse.id) {
+          // Store pending tool call
+          pendingToolCalls.set(toolUse.id, message)
+          return // Don't add to result yet
+        }
+      }
+      
+      // Check if this is a tool result
+      if (message.message?.content && Array.isArray(message.message.content)) {
+        const toolResult = message.message.content.find((item: any) => item.type === 'tool_result')
+        if (toolResult && toolResult.tool_use_id && pendingToolCalls.has(toolResult.tool_use_id)) {
+          // Merge with pending tool call
+          const toolCall = pendingToolCalls.get(toolResult.tool_use_id)!
+          const toolUse = toolCall.message.content.find((item: any) => item.type === 'tool_use')
+          
+          const mergedMessage: Message = {
+            ...message,
+            type: 'tool',
+            toolName: toolUse.name,
+            toolUseResult: toolResult.content,
+            message: {
+              ...message.message,
+              content: [toolUse, toolResult]
+            }
+          }
+          
+          result.push(mergedMessage)
+          pendingToolCalls.delete(toolResult.tool_use_id)
+          return
+        }
+      }
+      
+      // Regular message or unmatched tool message
+      result.push(message)
+    })
+    
+    // Add any remaining pending tool calls (without results)
+    pendingToolCalls.forEach((toolCall) => {
+      result.push(toolCall)
+    })
+    
+    return result
+  }, [sessionMessages])
+  
+  // Group consecutive tool messages
+  const groupedMessages = React.useMemo(() => {
+    const groups: Array<{ type: 'single' | 'tool-group', messages: Message[] }> = []
+    let currentToolGroup: Message[] = []
+    
+    processedMessages.forEach((message, index) => {
+      const isToolMessage = message.type === 'tool' || 
+        (message.message?.content && Array.isArray(message.message.content) && 
+         message.message.content.some((item: any) => item.type === 'tool_use' || item.type === 'tool_result'))
+      
+      if (isToolMessage) {
+        currentToolGroup.push(message)
+      } else {
+        // End current tool group if exists
+        if (currentToolGroup.length > 0) {
+          groups.push({ type: 'tool-group', messages: currentToolGroup })
+          currentToolGroup = []
+        }
+        // Add non-tool message
+        groups.push({ type: 'single', messages: [message] })
+      }
+    })
+    
+    // Don't forget the last group
+    if (currentToolGroup.length > 0) {
+      groups.push({ type: 'tool-group', messages: currentToolGroup })
+    }
+    
+    return groups
+  }, [processedMessages])
   
   // Find the session details from all project sessions
   let session = null
@@ -275,14 +360,28 @@ export const SessionViewer: React.FC<SessionViewerProps> = ({ tab }) => {
           margin: '0 auto',
           padding: '40px 24px'
         }}>
-          {sessionMessages.map((message, index) => (
-            <div 
-              key={message.uuid || index}
-              ref={el => messageRefs.current[index] = el}
-            >
-              <MessageBlock message={message} />
-            </div>
-          ))}
+          {groupedMessages.map((group, groupIndex) => {
+            if (group.type === 'single') {
+              return group.messages.map((message, index) => (
+                <div 
+                  key={message.uuid || `${groupIndex}-${index}`}
+                  ref={el => messageRefs.current[groupIndex] = el}
+                >
+                  <MessageBlock message={message} />
+                </div>
+              ))
+            } else {
+              // Tool group
+              return (
+                <div 
+                  key={`tool-group-${groupIndex}`}
+                  ref={el => messageRefs.current[groupIndex] = el}
+                >
+                  <ToolGroup messages={group.messages} />
+                </div>
+              )
+            }
+          })}
           {sessionMessages.length === 0 && (
             <div style={{
               textAlign: 'center',
@@ -325,7 +424,7 @@ export const SessionViewer: React.FC<SessionViewerProps> = ({ tab }) => {
         }}
       >
         <Timeline 
-          messages={sessionMessages}
+          messages={processedMessages}
           currentIndex={currentMessageIndex}
           onJump={handleTimelineJump}
         />
