@@ -12,6 +12,7 @@ declare global {
       unwatchFile: (path: string) => void
       onFileChange: (callback: (path: string) => void) => void
       onDeepLinkOpen: (callback: (params: { sessionId?: string; projectPath?: string; jsonlFile?: string }) => void) => void
+      onMenuAction: (callback: (action: string) => void) => void
       getHomePath: () => Promise<string>
       joinPath: (...paths: string[]) => Promise<string>
       getVersion: () => Promise<string>

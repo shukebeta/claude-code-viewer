@@ -12,6 +12,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   const [customCommand, setCustomCommand] = useState('')
   const [isDefault, setIsDefault] = useState(true)
   const [showSessionPreview, setShowSessionPreview] = useState(true)
+  const [toolPreviewCount, setToolPreviewCount] = useState(1)
 
   useEffect(() => {
     if (isOpen) {
@@ -27,15 +28,21 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
       // Load session preview setting
       const savedPreviewSetting = localStorage.getItem('claude-viewer-show-session-preview')
       setShowSessionPreview(savedPreviewSetting !== 'false') // Default to true
+      
+      // Load tool preview count setting
+      const savedToolPreviewCount = localStorage.getItem('claude-viewer-tool-preview-count')
+      setToolPreviewCount(savedToolPreviewCount ? parseInt(savedToolPreviewCount) : 1)
     }
   }, [isOpen])
 
   const handleSave = () => {
     localStorage.setItem('claude-viewer-custom-command', customCommand)
     localStorage.setItem('claude-viewer-show-session-preview', showSessionPreview.toString())
+    localStorage.setItem('claude-viewer-tool-preview-count', toolPreviewCount.toString())
     
     // Dispatch custom event for same-window updates
     window.dispatchEvent(new Event('sessionPreviewSettingChanged'))
+    window.dispatchEvent(new Event('toolPreviewCountChanged'))
     
     onClose()
   }
@@ -302,6 +309,85 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                     }} />
                   </div>
                 </label>
+              </div>
+            </div>
+            
+            {/* Tool Preview Count */}
+            <div style={{ marginBottom: '24px' }}>
+              <div style={{
+                padding: '16px',
+                backgroundColor: 'var(--secondary)',
+                borderRadius: '8px',
+                border: '1px solid var(--border)'
+              }}>
+                <div style={{
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  color: 'var(--foreground)',
+                  marginBottom: '12px'
+                }}>
+                  Tool Sequence Preview Count
+                </div>
+                <div style={{
+                  fontSize: '12px',
+                  color: 'var(--muted-foreground)',
+                  marginBottom: '16px'
+                }}>
+                  Number of recent tools to show in collapsed tool sequences
+                </div>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px'
+                }}>
+                  <input
+                    type="number"
+                    min="0"
+                    max="99"
+                    value={toolPreviewCount}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value) || 0
+                      setToolPreviewCount(Math.max(0, Math.min(99, value)))
+                    }}
+                    style={{
+                      width: '80px',
+                      padding: '6px 12px',
+                      backgroundColor: 'var(--background)',
+                      borderRadius: '6px',
+                      border: '1px solid var(--border)',
+                      fontSize: '14px',
+                      fontWeight: 500,
+                      textAlign: 'center',
+                      color: 'var(--foreground)',
+                      outline: 'none',
+                      fontFamily: 'SF Mono, Monaco, Cascadia Code, monospace'
+                    }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--accent)'
+                      e.currentTarget.style.boxShadow = '0 0 0 3px rgba(var(--accent-rgb), 0.1)'
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--border)'
+                      e.currentTarget.style.boxShadow = 'none'
+                    }}
+                  />
+                  <span style={{
+                    fontSize: '13px',
+                    color: 'var(--muted-foreground)'
+                  }}>
+                    tools
+                  </span>
+                </div>
+                <div style={{
+                  marginTop: '8px',
+                  fontSize: '11px',
+                  color: 'var(--muted-foreground)',
+                  fontStyle: 'italic'
+                }}>
+                  {toolPreviewCount === 0 ? 'All tools will be hidden until expanded' : 
+                   toolPreviewCount === 1 ? 'Show only the most recent tool' :
+                   `Show the ${toolPreviewCount} most recent tools`}
+                </div>
               </div>
             </div>
           </div>

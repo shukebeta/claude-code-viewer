@@ -316,7 +316,9 @@ export const ToolRow: React.FC<ToolRowProps> = ({
                 color: 'hsl(var(--text-000))',
                 textTransform: 'capitalize',
                 fontFamily: '-apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif',
-                letterSpacing: '-0.01em'
+                letterSpacing: '-0.01em',
+                minWidth: '60px',
+                display: 'inline-block'
               }}>
                 {toolName}
               </span>

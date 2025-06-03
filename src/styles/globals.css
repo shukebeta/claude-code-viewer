@@ -7,6 +7,60 @@
   /* Sidebar width is now dynamic and stored in app state */
 }
 
+/* Range input styling */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-track {
+  background: hsl(var(--border-200));
+  height: 4px;
+  border-radius: 2px;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  background: hsl(var(--accent-main-000));
+  border-radius: 50%;
+  cursor: pointer;
+  margin-top: -6px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  transition: all 0.15s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+input[type="range"]::-moz-range-track {
+  background: hsl(var(--border-200));
+  height: 4px;
+  border-radius: 2px;
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: hsl(var(--accent-main-000));
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  transition: all 0.15s ease;
+}
+
+input[type="range"]::-moz-range-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
 /* Light Mode (Claude Theme) - Default */
 :root,
 [data-theme="light"] {
@@ -866,4 +920,18 @@ body {
 
 .status-offline {
   background: var(--muted-foreground);
+}
+
+/* Responsive styles */
+@media (max-width: 720px) {
+  .hide-on-small {
+    display: none !important;
+  }
+}
+
+/* Alternative responsive approach for better control */
+@container (max-width: 720px) {
+  .hide-on-small {
+    display: none !important;
+  }
 }

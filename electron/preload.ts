@@ -25,6 +25,14 @@ const api = {
     ipcRenderer.on('deep-link-open', (_, params) => callback(params))
   },
   
+  // Menu events
+  onMenuAction: (callback: (action: string) => void) => {
+    const events = ['menu-new-tab', 'menu-close-tab', 'menu-toggle-sidebar', 'menu-zoom-in', 'menu-zoom-out', 'menu-zoom-reset']
+    events.forEach(event => {
+      ipcRenderer.on(event, () => callback(event.replace('menu-', '')))
+    })
+  },
+  
   // Path utilities
   getHomePath: () => ipcRenderer.invoke('path:getHome'),
   joinPath: (...paths: string[]) => ipcRenderer.invoke('path:join', ...paths),

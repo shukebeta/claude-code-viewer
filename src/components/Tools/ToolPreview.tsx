@@ -21,19 +21,44 @@ export const ToolPreview: React.FC<ToolPreviewProps> = ({
   onMouseEnter,
   onMouseLeave
 }) => {
-  // Calculate positioning - attach to the right edge of the tool row
+  // Calculate positioning - intelligently position based on available space
   const getSmartPosition = () => {
     const viewportWidth = window.innerWidth
     const viewportHeight = window.innerHeight
-    const previewWidth = 600 // Increased width
-    const previewHeight = 500 // Increased height
+    const previewWidth = 700 // Increased width
+    const previewHeight = 800 // Increased height
+    const mouseBuffer = 150 // Space to keep clear for mouse movement
     
-    // Position right at the edge of the tool row (no gap)
-    let left = position.x + position.width
+    // Check if there's enough space on the right
+    const spaceOnRight = viewportWidth - (position.x + position.width)
+    const hasEnoughSpaceOnRight = spaceOnRight >= previewWidth + 40
     
-    // If goes off right edge, adjust to fit within viewport
-    if (left + previewWidth > viewportWidth - 20) {
-      left = viewportWidth - previewWidth - 20
+    let left: number
+    let finalWidth = previewWidth
+    
+    if (hasEnoughSpaceOnRight) {
+      // Normal case: position to the right of the tool row
+      left = position.x + position.width
+    } else {
+      // Not enough space on right, check if we can fit it by overlapping partially
+      // but keeping the left part of the tool row (where mouse is) clear
+      const overlapStart = position.x + mouseBuffer // Keep mouse area clear
+      
+      if (overlapStart + previewWidth <= viewportWidth - 20) {
+        // Can fit with partial overlap, keeping mouse area clear
+        left = overlapStart
+      } else {
+        // Still doesn't fit, position as far right as possible
+        left = viewportWidth - previewWidth - 20
+        
+        // Make sure we're not covering the mouse area
+        if (left < position.x + mouseBuffer) {
+          // If we would cover the mouse area, shrink the preview width
+          const availableWidth = viewportWidth - position.x - mouseBuffer - 40
+          finalWidth = Math.max(400, availableWidth) // Minimum 400px width
+          left = position.x + mouseBuffer
+        }
+      }
     }
     
     // Ensure minimum left position
@@ -41,20 +66,43 @@ export const ToolPreview: React.FC<ToolPreviewProps> = ({
       left = 20
     }
     
-    // Vertical positioning - align top with the tool row
+    // Vertical positioning - check if we should show above or below
     let top = position.y
+    const spaceBelow = viewportHeight - position.y - position.height
+    const spaceAbove = position.y
     
-    // Check if preview would go off bottom edge
-    if (top + previewHeight > viewportHeight - 20) {
-      top = viewportHeight - previewHeight - 20
+    // If not enough space below but enough space above, show above the tool row
+    if (spaceBelow < previewHeight + 20 && spaceAbove >= previewHeight + 20) {
+      top = position.y - previewHeight - 10 // 10px gap above
+    } else {
+      // Default: align top with tool row
+      top = position.y
+      
+      // Check if preview would go off bottom edge
+      if (top + previewHeight > viewportHeight - 20) {
+        // Try to fit it in the viewport
+        const availableHeight = viewportHeight - position.y - 20
+        if (availableHeight >= 400) { // Minimum height
+          // Reduce height to fit
+          return { left, top, width: finalWidth, height: availableHeight }
+        } else {
+          // Not enough space below, position above if possible
+          if (spaceAbove >= 400) {
+            top = Math.max(20, position.y - previewHeight - 10)
+          } else {
+            // Center vertically in viewport as last resort
+            top = Math.max(20, (viewportHeight - previewHeight) / 2)
+          }
+        }
+      }
     }
     
-    // Check if preview would go off top edge
+    // Ensure top doesn't go off screen
     if (top < 20) {
       top = 20
     }
     
-    return { left, top, width: previewWidth, height: previewHeight }
+    return { left, top, width: finalWidth, height: previewHeight }
   }
 
   // Get tool description
@@ -106,7 +154,10 @@ export const ToolPreview: React.FC<ToolPreviewProps> = ({
           keyParams.push(`Content: ${parameters.content.length} characters`)
         }
         if (parameters.old_string && toolName === 'Edit') {
-          keyParams.push(`Replace: "${parameters.old_string.substring(0, 50)}${parameters.old_string.length > 50 ? '...' : ''}"`)
+          keyParams.push(`Replace: "${parameters.old_string.substring(0, 100)}${parameters.old_string.length > 100 ? '...' : ''}"`)
+        }
+        if (parameters.new_string && toolName === 'Edit') {
+          keyParams.push(`With: "${parameters.new_string.substring(0, 100)}${parameters.new_string.length > 100 ? '...' : ''}"`)
         }
         break
       case 'Bash':
@@ -138,18 +189,18 @@ export const ToolPreview: React.FC<ToolPreviewProps> = ({
   // Format result summary
   const getResultSummary = () => {
     if (error) {
-      return `Error: ${error.substring(0, 100)}${error.length > 100 ? '...' : ''}`
+      return `Error: ${error.substring(0, 1000)}${error.length > 1000 ? '...' : ''}`
     }
 
     if (!result) return 'No result'
 
     if (typeof result === 'string') {
-      return result.length > 150 ? `${result.substring(0, 150)}...` : result
+      return result.length > 2000 ? `${result.substring(0, 2000)}...` : result
     }
 
     if (result.output) {
       const output = result.output
-      return output.length > 150 ? `${output.substring(0, 150)}...` : output
+      return output.length > 2000 ? `${output.substring(0, 2000)}...` : output
     }
 
     return 'Operation completed'
@@ -189,6 +240,7 @@ export const ToolPreview: React.FC<ToolPreviewProps> = ({
         borderRadius: '8px',
         boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.08)',
         width: `${smartPos.width}px`,
+        maxWidth: `${smartPos.width}px`,
         maxHeight: `${smartPos.height}px`,
         overflow: 'hidden',
         fontSize: '12px'
@@ -245,7 +297,7 @@ export const ToolPreview: React.FC<ToolPreviewProps> = ({
       {/* Content */}
       <div style={{
         padding: '16px',
-        maxHeight: '320px',
+        maxHeight: '650px',
         overflowY: 'auto'
       }}>
         {/* Key Parameters */}
@@ -296,7 +348,9 @@ export const ToolPreview: React.FC<ToolPreviewProps> = ({
             borderRadius: '6px',
             whiteSpace: 'pre-wrap',
             wordBreak: 'break-word',
-            minHeight: '60px'
+            minHeight: '100px',
+            maxHeight: '550px',
+            overflowY: 'auto'
           }}>
             {getResultSummary()}
           </div>
