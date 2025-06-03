@@ -1,6 +1,13 @@
-# 🔍 Claude Session Viewer
+# 🔍 Claude Code Viewer
 
-A beautiful desktop app for viewing and managing your Claude conversations with real-time updates and powerful navigation.
+Claude Code Viewer brings your Claude Code sessions to life in a clear, structured web-based interface.
+
+- Beautifully renders markdown, code, and long outputs for easier reading.
+- Hover to preview sessions and navigate instantly.
+- Compact, collapsible chat flows for streamlined context.
+- Seamlessly switch from viewer to Claude CLI for direct edits.
+
+The best bridge between your terminal and a smarter, clearer session workflow.
 
 ## ✨ Features
 
@@ -41,8 +48,8 @@ A beautiful desktop app for viewing and managing your Claude conversations with 
 
 ```bash
 # Clone and install dependencies
-git clone https://github.com/yourusername/claude-session-viewer.git
-cd claude-session-viewer
+git clone https://github.com/yourusername/claude-code-viewer.git
+cd claude-code-viewer
 npm install
 
 # Build the application
@@ -50,8 +57,6 @@ npm run build
 
 # Package for your platform
 npm run dist:mac    # macOS (creates .dmg)
-npm run dist:win    # Windows (creates .exe installer)
-npm run dist:linux  # Linux (creates .AppImage)
 ```
 
 ### 🔗 Claude CLI Integration
