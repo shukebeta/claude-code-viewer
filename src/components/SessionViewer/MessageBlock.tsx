@@ -6,6 +6,7 @@ import { CodeBlock } from './CodeBlock'
 import { CollapsibleMessage } from './CollapsibleMessage'
 import { ToolRenderer } from '../Tools/ToolRenderer'
 import { ToolRow } from '../Tools/ToolRow'
+import { BashMessage } from './BashMessage'
 import { formatTime } from '@/utils/formatters'
 import { Message } from '@/types'
 
@@ -158,8 +159,13 @@ export const MessageBlock: React.FC<MessageBlockProps> = ({ message }) => {
       return <div style={{ color: 'var(--muted-foreground)', fontStyle: 'italic' }}>No content available</div>
     }
 
-    // For user messages, use collapsible component for long text (300+ characters)
+    // For user messages, check if it's a bash message first
     if (message.type === 'user') {
+      // Check if it's a bash message
+      if (content.includes('<bash-input>') || content.includes('<bash-stdout>') || content.includes('<bash-stderr>')) {
+        return <BashMessage content={content} />
+      }
+      // Otherwise use collapsible component for long text (300+ characters)
       return <CollapsibleMessage content={content} maxCharacters={300} />
     }
 

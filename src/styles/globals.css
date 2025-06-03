@@ -341,6 +341,41 @@ body {
   animation: fadeIn 0.15s ease-out;
 }
 
+/* Bash message styles */
+.bash-input {
+  position: relative;
+}
+
+.bash-input::before {
+  content: '$';
+  position: absolute;
+  left: 16px;
+  color: hsl(142 71% 45%);
+  font-weight: 600;
+}
+
+.bash-output {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.bash-output::-webkit-scrollbar {
+  width: 8px;
+}
+
+.bash-output::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.bash-output::-webkit-scrollbar-thumb {
+  background: hsl(var(--border-200));
+  border-radius: 4px;
+}
+
+.bash-output::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--border-300));
+}
+
 .tool-container {
   border: 1px solid hsl(var(--border-100));
   border-radius: 8px;
