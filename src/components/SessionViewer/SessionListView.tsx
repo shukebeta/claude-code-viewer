@@ -11,10 +11,29 @@ export const SessionListView: React.FC = () => {
   const hoverTimeoutRef = useRef<NodeJS.Timeout>()
   const [showSessionPreview, setShowSessionPreview] = useState(true)
   
-  // Load session preview setting
+  // Load session preview setting and listen for changes
   useEffect(() => {
-    const savedPreviewSetting = localStorage.getItem('claude-viewer-show-session-preview')
-    setShowSessionPreview(savedPreviewSetting !== 'false') // Default to true
+    const loadSetting = () => {
+      const savedPreviewSetting = localStorage.getItem('claude-viewer-show-session-preview')
+      setShowSessionPreview(savedPreviewSetting !== 'false') // Default to true
+    }
+    
+    // Initial load
+    loadSetting()
+    
+    // Listen for storage changes from settings modal
+    const handleStorageChange = () => {
+      loadSetting()
+    }
+    
+    window.addEventListener('storage', handleStorageChange)
+    // Also listen for custom event for same-window updates
+    window.addEventListener('sessionPreviewSettingChanged', handleStorageChange)
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('sessionPreviewSettingChanged', handleStorageChange)
+    }
   }, [])
   
   const selectedProject = projects.find(p => p.path === selectedProjectPath)
@@ -84,12 +103,33 @@ export const SessionListView: React.FC = () => {
     return acc
   }, {} as Record<string, typeof sessions>)
   
-  // Sort date keys to ensure "Unknown Date" is last
+  // Sort sessions within each date group by startTime (most recent first)
+  Object.keys(sessionsByDate).forEach(dateKey => {
+    sessionsByDate[dateKey].sort((a, b) => {
+      const timeA = a.startTime ? new Date(a.startTime).getTime() : 0
+      const timeB = b.startTime ? new Date(b.startTime).getTime() : 0
+      return timeB - timeA // Descending order (most recent first)
+    })
+  })
+  
+  // Sort dates with custom logic for Today, Yesterday, etc.
+  const getDatePriority = (dateStr: string): number => {
+    if (dateStr === 'Today') return 0
+    if (dateStr === 'Yesterday') return 1
+    if (dateStr.includes('days ago')) {
+      const days = parseInt(dateStr.split(' ')[0])
+      return 1 + days
+    }
+    if (dateStr === 'Unknown Date') return 10000
+    // For actual dates, calculate days from now
+    const date = new Date(dateStr)
+    const now = new Date()
+    const diffInDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24))
+    return 100 + diffInDays
+  }
+  
   const sortedDateKeys = Object.keys(sessionsByDate).sort((a, b) => {
-    if (a === 'Unknown Date') return 1
-    if (b === 'Unknown Date') return -1
-    // Most recent dates first
-    return b.localeCompare(a)
+    return getDatePriority(a) - getDatePriority(b)
   })
 
   if (!selectedProject) {
@@ -199,7 +239,7 @@ export const SessionListView: React.FC = () => {
                       color: 'var(--foreground)'
                     }}>
                       <Clock size={14} />
-                      {session.startTime && formatTime(new Date(session.startTime))}
+                      {session.mtime && formatTime(new Date(session.mtime))}
                     </div>
                     <span style={{ 
                       fontSize: '12px', 

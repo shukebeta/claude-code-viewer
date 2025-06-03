@@ -14,8 +14,10 @@ export interface Session {
   filePath: string
   startTime?: Date
   endTime?: Date
+  mtime?: Date  // File modification time
   messageCount: number
   totalCost: number
+  preview?: string
 }
 
 export interface Message {
@@ -68,6 +70,7 @@ export async function getSessions(projectName: string): Promise<Session[]> {
     for (const file of files) {
       if (file.endsWith('.jsonl')) {
         const filePath = join(projectPath, file)
+        const stats = await fs.stat(filePath)  // Get file stats for mtime
         const content = await fs.readFile(filePath, 'utf-8')
         const lines = content.trim().split('\n')
         
@@ -143,6 +146,7 @@ export async function getSessions(projectName: string): Promise<Session[]> {
           filePath,
           startTime,
           endTime,
+          mtime: stats.mtime,  // Add modification time
           messageCount,
           totalCost,
           preview
@@ -151,8 +155,9 @@ export async function getSessions(projectName: string): Promise<Session[]> {
     }
     
     return sessions.sort((a, b) => {
-      if (!a.startTime || !b.startTime) return 0
-      return b.startTime.getTime() - a.startTime.getTime()
+      // Sort by modification time instead of start time
+      if (!a.mtime || !b.mtime) return 0
+      return b.mtime.getTime() - a.mtime.getTime()
     })
   } catch (error) {
     console.error('Error reading sessions:', error)

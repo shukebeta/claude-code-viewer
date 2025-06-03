@@ -19,8 +19,9 @@ export const SessionList: React.FC = () => {
   }
   
   const sessionsByDate = sessions.reduce((acc, session) => {
-    const dateKey = session.startTime 
-      ? formatDate(new Date(session.startTime))
+    // Use mtime for grouping by date
+    const dateKey = session.mtime 
+      ? formatDate(new Date(session.mtime))
       : 'Unknown Date'
     
     console.log('Processing session:', session.id, 'dateKey:', dateKey)
@@ -30,11 +31,11 @@ export const SessionList: React.FC = () => {
     return acc
   }, {} as Record<string, typeof sessions>)
   
-  // Sort sessions within each date group by startTime (most recent first)
+  // Sort sessions within each date group by mtime (most recent first)
   Object.keys(sessionsByDate).forEach(dateKey => {
     sessionsByDate[dateKey].sort((a, b) => {
-      const timeA = a.startTime ? new Date(a.startTime).getTime() : 0
-      const timeB = b.startTime ? new Date(b.startTime).getTime() : 0
+      const timeA = a.mtime ? new Date(a.mtime).getTime() : 0
+      const timeB = b.mtime ? new Date(b.mtime).getTime() : 0
       return timeB - timeA // Descending order (most recent first)
     })
   })
@@ -100,7 +101,7 @@ export const SessionList: React.FC = () => {
                   fontWeight: 500
                 }}>
                   <Clock size={12} />
-                  {session.startTime && formatTime(new Date(session.startTime))}
+                  {session.mtime && formatTime(new Date(session.mtime))}
                 </div>
                 <span style={{ 
                   fontSize: '11px', 

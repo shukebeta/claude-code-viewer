@@ -33,6 +33,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   const handleSave = () => {
     localStorage.setItem('claude-viewer-custom-command', customCommand)
     localStorage.setItem('claude-viewer-show-session-preview', showSessionPreview.toString())
+    
+    // Dispatch custom event for same-window updates
+    window.dispatchEvent(new Event('sessionPreviewSettingChanged'))
+    
     onClose()
   }
 

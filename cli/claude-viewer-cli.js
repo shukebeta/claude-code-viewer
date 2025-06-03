@@ -42,30 +42,16 @@ class SessionFinder {
       checkedPaths.push(projectName);
       
       if (fs.existsSync(projectPath) && fs.statSync(projectPath).isDirectory()) {
-        console.log(`Found project for: ${currentPath}`);
-        return projectPath;
+        // Don't log here, will log in main
+        return { projectPath, originalPath: currentPath };
       }
       
       // 상위 디렉토리로 이동
       currentPath = path.dirname(currentPath);
     }
 
-    // 찾지 못한 경우
-    console.log(`No project found for current directory: ${pwd}`);
-    console.log('Checked paths:');
-    checkedPaths.forEach(p => console.log(`  - ${p}`));
-    
-    console.log('\nAvailable projects:');
-    try {
-      const projects = fs.readdirSync(this.claudeProjectsPath);
-      projects.forEach(project => {
-        if (fs.statSync(path.join(this.claudeProjectsPath, project)).isDirectory()) {
-          console.log(`  - ${project}`);
-        }
-      });
-    } catch (error) {
-      console.error('Failed to list projects:', error);
-    }
+    // 찾지 못한 경우 - 간단한 에러 메시지만
+    console.error(`Error: No Claude project found for current directory`);
 
     return null;
   }
@@ -111,23 +97,21 @@ class SessionFinder {
 
   findCurrentSession() {
     const pwd = this.getCurrentDirectory();
-    console.log(`Current directory: ${pwd}`);
 
-    const projectDir = this.findMatchingProject(pwd);
-    if (!projectDir) {
-      console.error('No matching Claude project found for current directory');
+    const projectInfo = this.findMatchingProject(pwd);
+    if (!projectInfo) {
       return null;
     }
 
-    console.log(`Found project: ${projectDir}`);
-
-    const session = this.findMostRecentSession(projectDir);
+    const session = this.findMostRecentSession(projectInfo.projectPath);
     if (session) {
-      console.log(`Found most recent session: ${session.sessionId}`);
-      return session;
+      return {
+        ...session,
+        originalPath: projectInfo.originalPath
+      };
     }
 
-    console.error('No active session found');
+    console.error('Error: No active session found');
     return null;
   }
 }
@@ -137,32 +121,26 @@ const finder = new SessionFinder();
 const sessionInfo = finder.findCurrentSession();
 
 if (!sessionInfo) {
-  console.error('No active Claude session found in current directory');
-  console.log('Make sure you are in a directory with an active Claude session');
   process.exit(1);
 }
 
 // Deep link URL 생성
 const deepLink = `claude-viewer://open?sessionId=${encodeURIComponent(sessionInfo.sessionId)}&projectPath=${encodeURIComponent(sessionInfo.projectPath)}&jsonlFile=${encodeURIComponent(sessionInfo.jsonlFile)}`;
 
-console.log(`Opening Claude Session Viewer...`);
-console.log(`Session ID: ${sessionInfo.sessionId}`);
-console.log(`Project: ${path.basename(sessionInfo.projectPath)}`);
-console.log(`Deep link: ${deepLink}`);
+// 깔끔한 출력 - Project와 Session ID만
+console.log(`\nProject: ${sessionInfo.originalPath}`);
+console.log(`Session: ${sessionInfo.sessionId}\n`);
 
 // 개발 모드 확인 (환경변수 또는 --dev 플래그)
 const isDev = process.argv.includes('--dev') || process.env.CLAUDE_VIEWER_DEV === '1';
 
 if (isDev) {
-  console.log('\n[DEV MODE] Trying to connect to development server...');
-  
   // 개발 서버에 HTTP 요청으로 세션 정보 전달
   const http = require('http');
   const url = new URL(deepLink);
   const params = new URLSearchParams(url.search);
   
   const devUrl = `http://localhost:5173/dev-open?${params.toString()}`;
-  console.log(`[DEV MODE] Opening URL: ${devUrl}`);
   
   // 브라우저로 개발 서버 URL 열기
   const openCommand = process.platform === 'darwin' ? 'open' : 
@@ -174,11 +152,7 @@ if (isDev) {
   });
   
   child.unref();
-  
-  console.log('[DEV MODE] Development server should open with your session');
 } else {
-  console.log('\n[PROD MODE] Opening with deep link...');
-  
   // macOS에서 deep link 열기
   const openCommand = process.platform === 'darwin' ? 'open' : 
                      process.platform === 'win32' ? 'start' : 'xdg-open';
@@ -189,12 +163,9 @@ if (isDev) {
   });
   
   child.unref();
-  
-  console.log('[PROD MODE] Claude Session Viewer should open');
 }
 
 // 앱이 열릴 시간을 주고 종료
 setTimeout(() => {
-  console.log('Claude Session Viewer should now be open with your session');
   process.exit(0);
 }, 1000);

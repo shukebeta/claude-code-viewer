@@ -10,6 +10,7 @@ export interface Session {
   filePath: string
   startTime?: Date
   endTime?: Date
+  mtime?: Date  // File modification time
   messageCount: number
   totalCost: number
   preview?: string
