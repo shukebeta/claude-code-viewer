@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Clock, MessageSquare, DollarSign } from 'lucide-react'
 import { Session } from '@/types'
-import { formatTime, formatCurrency } from '@/utils/formatters'
+import { formatTime, formatDateTime, formatCurrency } from '@/utils/formatters'
 import { useAppStore } from '@/store/appStore'
 import { SessionPreview } from '../SessionViewer/SessionPreview'
 
@@ -220,7 +220,7 @@ export const RecentSessions: React.FC<RecentSessionsProps> = ({ limit = 10, show
                 gap: '4px'
               }}>
                 <Clock size={14} />
-                {formatTime(new Date(session.startTime))}
+                {formatDateTime(new Date(session.startTime))}
               </div>
             </div>
             

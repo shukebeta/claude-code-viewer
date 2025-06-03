@@ -10,11 +10,23 @@ interface ToolGroupProps {
 
 export const ToolGroup: React.FC<ToolGroupProps> = ({ messages }) => {
   const [isExpanded, setIsExpanded] = useState(false)
+  const [alwaysVisibleCount, setAlwaysVisibleCount] = useState(1)
   
-  // Always show the latest 1 tool
-  const ALWAYS_VISIBLE_COUNT = 1
-  const hiddenCount = Math.max(0, messages.length - ALWAYS_VISIBLE_COUNT)
-  const visibleMessages = isExpanded ? messages : messages.slice(-ALWAYS_VISIBLE_COUNT)
+  // Load the tool preview count from settings
+  React.useEffect(() => {
+    const loadSettings = () => {
+      const savedCount = localStorage.getItem('claude-viewer-tool-preview-count')
+      setAlwaysVisibleCount(savedCount ? parseInt(savedCount) : 1)
+    }
+    
+    loadSettings()
+    
+    // Listen for setting changes
+    window.addEventListener('toolPreviewCountChanged', loadSettings)
+    return () => window.removeEventListener('toolPreviewCountChanged', loadSettings)
+  }, [])
+  const hiddenCount = Math.max(0, messages.length - alwaysVisibleCount)
+  const visibleMessages = isExpanded ? messages : (alwaysVisibleCount === 0 ? [] : messages.slice(-alwaysVisibleCount))
   
   // Get timestamp from the first message
   const firstTimestamp = messages[0]?.timestamp
@@ -73,6 +85,7 @@ export const ToolGroup: React.FC<ToolGroupProps> = ({ messages }) => {
             <ChevronRight size={16} />
             <span>
               {messages.length} tool{messages.length > 1 ? 's' : ''} used
+              {hiddenCount > 0 && ` (${hiddenCount} hidden)`}
             </span>
           </div>
         )}
@@ -155,8 +168,8 @@ export const ToolGroup: React.FC<ToolGroupProps> = ({ messages }) => {
             </>
           )}
         
-          {/* Always visible tool (latest 1) */}
-          {(!isExpanded && hiddenCount > 0 ? visibleMessages : messages.slice(-ALWAYS_VISIBLE_COUNT)).map((message, index) => (
+          {/* Always visible tools (latest N based on settings) */}
+          {(!isExpanded && hiddenCount > 0 ? visibleMessages : (alwaysVisibleCount === 0 ? [] : messages.slice(-alwaysVisibleCount))).map((message, index) => (
             <div key={message.uuid || index} style={{ position: 'relative', marginBottom: '6px' }}>
               <MessageBlock message={{...message, isInToolGroup: true}} />
             </div>

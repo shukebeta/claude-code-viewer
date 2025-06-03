@@ -4,18 +4,19 @@ import { Message, Tab } from '@/types'
 import { MessageBlock } from './MessageBlock'
 import { Timeline } from './Timeline'
 import { ToolGroup } from './ToolGroup'
-import { Copy, Check, Settings } from 'lucide-react'
+import { Copy, Check, Settings, ChevronRight } from 'lucide-react'
 
 interface SessionViewerProps {
   tab: Tab
 }
 
 export const SessionViewer: React.FC<SessionViewerProps> = ({ tab }) => {
-  const { messages, setMessages, sessionsByProject } = useAppStore()
+  const { messages, setMessages, sessionsByProject, selectProject, setActiveTab } = useAppStore()
   const [isLive, setIsLive] = useState(false)
   const [autoScroll, setAutoScroll] = useState(true)
   const [currentMessageIndex, setCurrentMessageIndex] = useState<number | undefined>()
   const [copied, setCopied] = useState(false)
+  const [isNarrow, setIsNarrow] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const messageRefs = useRef<(HTMLDivElement | null)[]>([])
   const sessionMessages = messages[tab.sessionId] || []
@@ -227,6 +228,17 @@ export const SessionViewer: React.FC<SessionViewerProps> = ({ tab }) => {
     return () => container.removeEventListener('scroll', handleScroll)
   }, [sessionMessages])
   
+  // Track window width for responsive behavior
+  useEffect(() => {
+    const handleResize = () => {
+      setIsNarrow(window.innerWidth <= 720)
+    }
+    
+    handleResize() // Check initial width
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+  
   if (!session) {
     return (
       <div style={{
@@ -252,38 +264,68 @@ export const SessionViewer: React.FC<SessionViewerProps> = ({ tab }) => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '16px 24px',
+        padding: '12px 24px',
         borderBottom: '1px solid var(--border)',
-        backgroundColor: 'var(--background)'
+        backgroundColor: 'var(--background)',
+        minHeight: '48px',
+        flexWrap: 'nowrap'
       }}>
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '12px'
+          gap: '8px',
+          minWidth: 0,
+          flex: '1 1 auto',
+          overflow: 'hidden'
         }}>
-          <h1 style={{
-            fontSize: '14px',
-            fontWeight: 600,
-            margin: 0,
-            color: 'var(--foreground)'
-          }}>
-            {tab.projectName}
-          </h1>
-          <span style={{
-            fontSize: '13px',
-            color: 'var(--muted-foreground)'
-          }}>
-            /
-          </span>
+          <button
+            onClick={() => {
+              // Navigate to project session list
+              selectProject(tab.fullProjectPath || tab.actualProjectPath)
+              setActiveTab(`project-${tab.projectName}`)
+            }}
+            style={{
+              fontSize: '14px',
+              fontWeight: 600,
+              margin: 0,
+              color: 'var(--foreground)',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: '4px 8px',
+              borderRadius: '4px',
+              transition: 'all 0.2s',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              maxWidth: '200px'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.background = 'var(--secondary)'
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.background = 'none'
+            }}
+            title={tab.projectName}
+          >
+            {tab.projectName.split('/').pop() || tab.projectName}
+          </button>
+          <ChevronRight size={16} style={{ color: 'var(--muted-foreground)', flexShrink: 0 }} />
           <div style={{
             fontSize: '13px',
             color: 'var(--muted-foreground)',
             fontFamily: 'SF Mono, Monaco, Cascadia Code, monospace',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px'
+            gap: '8px',
+            minWidth: 0,
+            flex: '1 1 auto'
           }}>
-            <span>{tab.sessionId}</span>
+            <span style={{
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap'
+            }}>{tab.sessionId}</span>
               <button
                 onClick={handleCopyCommand}
                 style={{
@@ -315,8 +357,9 @@ export const SessionViewer: React.FC<SessionViewerProps> = ({ tab }) => {
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '16px',
-          fontSize: '13px'
+          gap: '12px',
+          fontSize: '13px',
+          flexShrink: 0
         }}>
           <label style={{
             display: 'flex',
@@ -330,18 +373,22 @@ export const SessionViewer: React.FC<SessionViewerProps> = ({ tab }) => {
               checked={autoScroll}
               onChange={(e) => setAutoScroll(e.target.checked)}
               style={{ cursor: 'pointer' }}
+              title="Auto-scroll"
             />
-            Auto-scroll
+            {!isNarrow && <span style={{ marginLeft: '2px' }}>Auto-scroll</span>}
           </label>
           <div style={{
             display: 'flex',
             alignItems: 'center',
             gap: '6px'
           }}>
-            <span className={isLive ? 'status-indicator status-live' : 'status-indicator status-offline'} />
-            <span style={{ color: 'var(--muted-foreground)' }}>
-              {isLive ? 'Live' : 'Offline'}
-            </span>
+            <span className={isLive ? 'status-indicator status-live' : 'status-indicator status-offline'} 
+                  title={isLive ? 'Live' : 'Offline'} />
+            {!isNarrow && (
+              <span style={{ color: 'var(--muted-foreground)', marginLeft: '2px' }}>
+                {isLive ? 'Live' : 'Offline'}
+              </span>
+            )}
           </div>
         </div>
       </div>

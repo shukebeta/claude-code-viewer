@@ -2,14 +2,25 @@ import React, { useEffect } from 'react'
 import { ThemeProvider } from 'next-themes'
 import { Layout } from '@/components/Layout/Layout'
 import { useAppStore } from '@/store/appStore'
+import { findMatchingProject } from '@/utils/projectPathUtils'
 import './styles/globals.css'
 
 function App(): JSX.Element {
-  const { setProjects, setSessions, setSessionsForProject, addTab, setActiveTab } = useAppStore()
+  const { setProjects, setSessions, setSessionsForProject, addTab, setActiveTab, selectProject } = useAppStore()
   
   useEffect(() => {
     // Load projects on app start
     loadProjects()
+    
+    // Create dashboard tab on first load
+    const hasInitialized = localStorage.getItem('hasInitialized')
+    if (!hasInitialized) {
+      setActiveTab('dashboard')
+      localStorage.setItem('hasInitialized', 'true')
+    } else {
+      // Always show dashboard on app start
+      setActiveTab('dashboard')
+    }
     
     // Handle dev mode URL parameters
     handleDevModeParams()
@@ -27,8 +38,8 @@ function App(): JSX.Element {
   const handleDeepLink = async (params: { sessionId?: string; projectPath?: string; jsonlFile?: string }) => {
     console.log('[App] handleDeepLink called with:', params)
     
-    if (!params.sessionId || !params.projectPath) {
-      console.error('[App] Missing required params:', params)
+    if (!params.projectPath) {
+      console.error('[App] Missing projectPath param:', params)
       return
     }
     
@@ -42,7 +53,7 @@ function App(): JSX.Element {
           setProjects(projects)
           
           // Find the matching project
-          const project = projects.find(p => p.path === params.projectPath)
+          const project = findMatchingProject(projects, params.projectPath)
           if (!project) {
             console.error('[App] Project not found:', params.projectPath)
             console.error('[App] Available projects:', projects.map(p => p.path))
@@ -50,38 +61,48 @@ function App(): JSX.Element {
           }
           
           // Get sessions for this project
-          const sessions = await window.api.getSessions(params.projectPath)
+          const sessions = await window.api.getSessions(project.path)
           console.log('[App] Loaded sessions:', sessions.length)
           
           // IMPORTANT: Set sessions in the store for this specific project
-          setSessionsForProject(params.projectPath, sessions)
+          setSessionsForProject(project.path, sessions)
           
-          // Find the specific session
-          const session = sessions.find(s => s.id === params.sessionId)
-          if (!session) {
-            console.error('[App] Session not found:', params.sessionId)
-            console.error('[App] Available sessions:', sessions.map(s => s.id))
-            return
+          // If sessionId is provided, open that specific session
+          if (params.sessionId) {
+            // Find the specific session
+            const session = sessions.find(s => s.id === params.sessionId)
+            if (!session) {
+              console.error('[App] Session not found:', params.sessionId)
+              console.error('[App] Available sessions:', sessions.map(s => s.id))
+              return
+            }
+            
+            console.log('[App] Found session:', session)
+            
+            // Create and activate tab
+            // project.name에 슬래시가 포함되어 있으므로 안전한 ID 생성
+            const projectDisplayName = project.path.split('/').pop() || 'project'
+            const tabId = `${projectDisplayName}-${session.id}`
+            console.log('[App] Creating tab with ID:', tabId)
+            console.log('[App] Project info:', { name: project.name, path: project.path, displayName: projectDisplayName })
+            
+            addTab(session, project)
+            
+            // 탭이 생성된 후 활성화
+            setTimeout(() => {
+              console.log('[App] Activating tab:', tabId)
+              setActiveTab(tabId)
+            }, 100)
+            
+            console.log('[App] Tab created and activation scheduled')
+          } else {
+            // If no sessionId, just show the project's session list
+            console.log('[App] No sessionId provided, showing project sessions')
+            // Select the project to show its sessions in the UI
+            selectProject(project.path)
+            // The sessions are already loaded and set in the store
+            // The UI will automatically show the session list for this project
           }
-          
-          console.log('[App] Found session:', session)
-          
-          // Create and activate tab
-          // project.name에 슬래시가 포함되어 있으므로 안전한 ID 생성
-          const projectDisplayName = project.path.split('/').pop() || 'project'
-          const tabId = `${projectDisplayName}-${session.id}`
-          console.log('[App] Creating tab with ID:', tabId)
-          console.log('[App] Project info:', { name: project.name, path: project.path, displayName: projectDisplayName })
-          
-          addTab(session, project)
-          
-          // 탭이 생성된 후 활성화
-          setTimeout(() => {
-            console.log('[App] Activating tab:', tabId)
-            setActiveTab(tabId)
-          }, 100)
-          
-          console.log('[App] Tab created and activation scheduled')
         }
       } catch (error) {
         console.error('[App] Error handling deep link:', error)

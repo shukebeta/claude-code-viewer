@@ -10,34 +10,49 @@ export const Layout: React.FC = () => {
   const { sidebarCollapsed, sidebarWidth, toggleSidebar, activeTabId, tabs } = useAppStore()
   
   useEffect(() => {
+    // Handle menu events from Electron
+    window.api?.onMenuAction?.((action: string) => {
+      switch (action) {
+        case 'new-tab': {
+          // Instead of creating an empty tab, navigate to dashboard
+          const { setActiveTab } = useAppStore.getState()
+          setActiveTab('dashboard')
+          break
+        }
+        case 'close-tab': {
+          if (activeTabId && tabs.length > 0) {
+            const { removeTab } = useAppStore.getState()
+            removeTab(activeTabId)
+          }
+          break
+        }
+        case 'toggle-sidebar':
+          toggleSidebar()
+          break
+        case 'zoom-in': {
+          const currentZoom = parseFloat(document.documentElement.style.fontSize || '16px')
+          const newZoom = Math.min(currentZoom + 1, 24)
+          document.documentElement.style.fontSize = `${newZoom}px`
+          break
+        }
+        case 'zoom-out': {
+          const currentZoom = parseFloat(document.documentElement.style.fontSize || '16px')
+          const newZoom = Math.max(currentZoom - 1, 10)
+          document.documentElement.style.fontSize = `${newZoom}px`
+          break
+        }
+        case 'zoom-reset':
+          document.documentElement.style.fontSize = '16px'
+          break
+      }
+    })
+  }, [toggleSidebar, activeTabId, tabs.length])
+  
+  useEffect(() => {
     // Handle keyboard shortcuts
     const handleKeydown = (e: KeyboardEvent) => {
-      // Ctrl+B for sidebar toggle
-      if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
-        e.preventDefault()
-        toggleSidebar()
-      }
-      
-      // Ctrl+W to close current tab
-      if ((e.ctrlKey || e.metaKey) && e.key === 'w') {
-        e.preventDefault()
-        if (activeTabId && tabs.length > 0) {
-          const { removeTab } = useAppStore.getState()
-          removeTab(activeTabId)
-        }
-      }
-      
-      // Ctrl+N to create new tab
-      if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
-        e.preventDefault()
-        const { addTab, setActiveTab } = useAppStore.getState()
-        const newTabId = `new-tab-${Date.now()}`
-        addTab(
-          { id: newTabId, filePath: '', projectPath: '', messageCount: 0, totalCost: 0 } as any,
-          { name: 'New Tab', path: '', sessionCount: 0 }
-        )
-        setActiveTab(newTabId)
-      }
+      // Note: Cmd+T, Cmd+N, Cmd+W, Cmd+B are now handled by Electron menu
+      // Only handle shortcuts that aren't in the menu
       
       // - to zoom out (decrease font size)
       if (e.key === '-' && !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey) {
@@ -55,11 +70,7 @@ export const Layout: React.FC = () => {
         document.documentElement.style.fontSize = `${newZoom}px`
       }
       
-      // Cmd/Ctrl + 0 to reset zoom
-      if (e.key === '0' && (e.ctrlKey || e.metaKey)) {
-        e.preventDefault()
-        document.documentElement.style.fontSize = '16px'
-      }
+      // Note: Zoom shortcuts are now handled by Electron menu
     }
     
     window.addEventListener('keydown', handleKeydown)

@@ -99,7 +99,7 @@ export const Sidebar: React.FC = () => {
         fontWeight: 500,
         color: 'var(--foreground)'
       }}>
-        <span>프로젝트</span>
+        <span>Projects</span>
         <button
           onClick={toggleSidebar}
           style={{
@@ -140,7 +140,7 @@ export const Sidebar: React.FC = () => {
           </svg>
           <input
             type="text"
-            placeholder="프로젝트 검색"
+            placeholder="Search projects"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{

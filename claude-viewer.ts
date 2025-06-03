@@ -6,8 +6,27 @@ import * as path from 'path'
 
 // CLAUDECODE 환경변수 확인
 if (process.env.CLAUDECODE !== '1') {
-  console.error('Error: This command must be run inside Claude CLI (CLAUDECODE=1)')
-  process.exit(1)
+  // Claude CLI 밖에서 실행된 경우 현재 프로젝트의 세션들을 보여주는 앱 열기
+  const currentProjectPath = process.cwd()
+  const deepLink = `claude-viewer://open?projectPath=${encodeURIComponent(currentProjectPath)}`
+  
+  console.log(`Opening Claude Session Viewer for project: ${path.basename(currentProjectPath)}`)
+  
+  // macOS에서 deep link 열기
+  const openCommand = process.platform === 'darwin' ? 'open' : 
+                     process.platform === 'win32' ? 'start' : 'xdg-open'
+  
+  const child = spawn(openCommand, [deepLink], {
+    detached: true,
+    stdio: 'ignore'
+  })
+  
+  child.unref()
+  
+  // 앱이 열릴 시간을 주고 종료
+  setTimeout(() => {
+    process.exit(0)
+  }, 1000)
 }
 
 // 세션 찾기

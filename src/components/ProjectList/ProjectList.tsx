@@ -88,7 +88,7 @@ export const ProjectList: React.FC<ProjectListProps> = ({ searchQuery = '' }) =>
             fontSize: '12px',
             color: 'var(--muted-foreground)'
           }}>
-            {project.sessionCount}개 세션
+            {project.sessionCount} sessions
           </div>
         </div>
       ))}

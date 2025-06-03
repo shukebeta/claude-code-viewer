@@ -5,7 +5,7 @@ import { formatTime, formatDate, formatCurrency } from '@/utils/formatters'
 import { SessionPreview } from './SessionPreview'
 
 export const SessionListView: React.FC = () => {
-  const { sessions, selectedSessionId, selectSession, addTab, projects, selectedProjectPath } = useAppStore()
+  const { sessions, sessionsByProject, selectedSessionId, selectSession, addTab, projects, selectedProjectPath } = useAppStore()
   const [hoveredSession, setHoveredSession] = useState<string | null>(null)
   const [previewPosition, setPreviewPosition] = useState({ x: 0, y: 0, width: 0, height: 0 })
   const hoverTimeoutRef = useRef<NodeJS.Timeout>()
@@ -93,7 +93,12 @@ export const SessionListView: React.FC = () => {
     }
   }
 
-  const sessionsByDate = sessions.reduce((acc, session) => {
+  // Use sessions from sessionsByProject if project is selected
+  const projectSessions = selectedProjectPath && sessionsByProject[selectedProjectPath] 
+    ? sessionsByProject[selectedProjectPath] 
+    : sessions
+
+  const sessionsByDate = projectSessions.reduce((acc, session) => {
     const dateKey = session.startTime 
       ? formatDate(new Date(session.startTime))
       : 'Unknown Date'
@@ -101,7 +106,7 @@ export const SessionListView: React.FC = () => {
     if (!acc[dateKey]) acc[dateKey] = []
     acc[dateKey].push(session)
     return acc
-  }, {} as Record<string, typeof sessions>)
+  }, {} as Record<string, typeof projectSessions>)
   
   // Sort sessions within each date group by startTime (most recent first)
   Object.keys(sessionsByDate).forEach(dateKey => {
@@ -168,16 +173,25 @@ export const SessionListView: React.FC = () => {
         <h1 style={{
           fontSize: '24px',
           fontWeight: 700,
-          marginBottom: '8px',
+          marginBottom: '4px',
           color: 'var(--foreground)'
         }}>
-          {selectedProject.name}
+          {selectedProject.name.split('/').pop() || selectedProject.name}
         </h1>
+        <div style={{
+          fontSize: '13px',
+          color: 'var(--muted-foreground)',
+          marginBottom: '8px',
+          fontFamily: 'SF Mono, Monaco, Cascadia Code, monospace',
+          opacity: 0.8
+        }}>
+          {selectedProject.name}
+        </div>
         <p style={{
           fontSize: '14px',
           color: 'var(--muted-foreground)'
         }}>
-          {sessions.length} sessions
+          {projectSessions.length} sessions
         </p>
       </div>
 

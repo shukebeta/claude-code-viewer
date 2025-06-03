@@ -1,11 +1,11 @@
 import React, { useState } from 'react'
-import { X, Plus, Sun, Moon, BarChart3, Folder, Settings } from 'lucide-react'
+import { X, Plus, Sun, Moon, BarChart3, Folder, Settings, PanelLeft } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useAppStore } from '@/store/appStore'
 import { SettingsModal } from '../Settings/SettingsModal'
 
 export const TabBar: React.FC = () => {
-  const { tabs, activeTabId, setActiveTab, removeTab, addTab, sidebarCollapsed, sidebarWidth } = useAppStore()
+  const { tabs, activeTabId, setActiveTab, removeTab, addTab, sidebarCollapsed, sidebarWidth, toggleSidebar } = useAppStore()
   const { theme, setTheme } = useTheme()
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   
@@ -52,9 +52,13 @@ export const TabBar: React.FC = () => {
             const getTabLabel = () => {
               if (tab.id === 'dashboard') return 'Dashboard'
               if (tab.id.startsWith('new-tab-')) return 'New Tab'
-              if (tab.id.startsWith('project-')) return tab.projectName || 'Project'
+              if (tab.id.startsWith('project-')) {
+                const projectDisplayName = tab.projectName?.split('/').pop() || tab.projectName || 'Project'
+                return projectDisplayName
+              }
               // For session tabs, show format: "projectName / sessionId"
-              return `${tab.projectName} / ${tab.sessionName}`
+              const projectDisplayName = tab.projectName?.split('/').pop() || tab.projectName || 'Unknown'
+              return `${projectDisplayName} / ${tab.sessionName}`
             }
             
             const getTabIcon = () => {
@@ -92,6 +96,16 @@ export const TabBar: React.FC = () => {
               </button>
             )
           })}
+          {sidebarCollapsed && (
+            <button
+              className="btn-icon"
+              style={{ padding: '6px', marginRight: '4px' }}
+              onClick={toggleSidebar}
+              title="Show sidebar (Cmd+B)"
+            >
+              <PanelLeft size={16} />
+            </button>
+          )}
           {tabs.length < 10 && (
             <button
               className="btn-icon"
