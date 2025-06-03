@@ -88,7 +88,7 @@ claude-viewer
 ```
 
 ### Standalone App
-1. Launch Claude Session Viewer
+1. Launch Claude Code Viewer
 2. Select a project from the sidebar
 3. Click any session to view
 4. Use tabs to open multiple sessions
@@ -115,7 +115,7 @@ npm test
 
 ### Project Structure
 ```
-claude-session-viewer/
+claude-code-viewer/
 ├── electron/          # Main process
 ├── src/              # Renderer process (React app)
 │   ├── components/   # UI components

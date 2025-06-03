@@ -1,5 +1,5 @@
 {
-  "name": "claude-session-viewer",
+  "name": "claude-code-viewer",
   "version": "1.0.0",
   "main": "dist/main/main.js",
   "scripts": {
@@ -19,8 +19,9 @@
   ],
   "author": "",
   "license": "MIT",
-  "description": "A viewer for Claude Code session files",
+  "description": "A beautiful viewer for Claude Code conversation sessions",
   "devDependencies": {
+    "@electron/notarize": "^2.3.0",
     "@tailwindcss/postcss": "^4.1.7",
     "@types/node": "^22.15.21",
     "@types/react": "^19.1.5",
@@ -57,8 +58,8 @@
     "zustand": "^5.0.5"
   },
   "build": {
-    "appId": "com.claude.session-viewer",
-    "productName": "Claude Session Viewer",
+    "appId": "com.mainpy.claude-code-viewer",
+    "productName": "Claude Code Viewer",
     "directories": {
       "output": "release"
     },
@@ -75,6 +76,10 @@
     ],
     "mac": {
       "category": "public.app-category.developer-tools",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
       "protocols": [
         {
           "name": "Claude Viewer",
@@ -82,6 +87,10 @@
         }
       ]
     },
+    "dmg": {
+      "sign": false
+    },
+    "afterSign": "scripts/notarize.js",
     "win": {
       "target": "nsis",
       "protocols": [

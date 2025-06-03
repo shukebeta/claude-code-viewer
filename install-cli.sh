@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# Claude Session Viewer CLI 설치 스크립트
+# Claude Code Viewer CLI 설치 스크립트
 
-echo "Installing Claude Session Viewer CLI..."
+echo "Installing Claude Code Viewer CLI..."
 
 # 현재 디렉토리
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
