@@ -37,7 +37,7 @@ export const ImprovedBaseToolComponent: React.FC<BaseToolProps> = ({
       borderRadius: '6px',
       overflow: 'hidden',
       background: isExpanded ? 'rgba(255, 255, 255, 0.02)' : 'transparent',
-      border: `1px solid ${isExpanded ? 'rgba(255, 255, 255, 0.05)' : 'transparent'}`,
+      border: 'none',
       transition: 'all 0.2s ease'
     }}>
       <div 
@@ -73,7 +73,7 @@ export const ImprovedBaseToolComponent: React.FC<BaseToolProps> = ({
           alignItems: 'center',
           justifyContent: 'center',
           fontSize: '14px',
-          border: `1px solid ${metadata.color}20`,
+          border: 'none',
           flexShrink: 0
         }}>
           {metadata.icon}
@@ -131,7 +131,7 @@ export const ImprovedBaseToolComponent: React.FC<BaseToolProps> = ({
       {isExpanded && (
         <div style={{ 
           padding: '0 12px 12px 12px',
-          borderTop: '1px solid rgba(255, 255, 255, 0.05)'
+          borderTop: '1px solid rgba(255, 255, 255, 0.03)'
         }}>
           {children || (
             <>
@@ -149,7 +149,7 @@ export const ImprovedBaseToolComponent: React.FC<BaseToolProps> = ({
                   </div>
                   <pre style={{
                     background: 'rgba(0, 0, 0, 0.2)',
-                    border: '1px solid rgba(255, 255, 255, 0.05)',
+                    border: 'none',
                     padding: '8px',
                     borderRadius: '4px',
                     fontSize: '11px',
@@ -177,7 +177,7 @@ export const ImprovedBaseToolComponent: React.FC<BaseToolProps> = ({
                   </div>
                   <pre style={{
                     background: 'rgba(239, 68, 68, 0.1)',
-                    border: '1px solid rgba(239, 68, 68, 0.2)',
+                    border: 'none',
                     padding: '8px',
                     borderRadius: '4px',
                     fontSize: '11px',
@@ -205,7 +205,7 @@ export const ImprovedBaseToolComponent: React.FC<BaseToolProps> = ({
                   </div>
                   <pre style={{
                     background: 'rgba(0, 0, 0, 0.2)',
-                    border: '1px solid rgba(255, 255, 255, 0.05)',
+                    border: 'none',
                     padding: '8px',
                     borderRadius: '4px',
                     fontSize: '11px',

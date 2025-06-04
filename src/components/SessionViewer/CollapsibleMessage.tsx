@@ -59,8 +59,8 @@ export const CollapsibleMessage: React.FC<CollapsibleMessageProps> = ({
             gap: '4px',
             marginTop: '8px',
             padding: '4px 8px',
-            background: 'rgba(255, 255, 255, 0.05)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
+            background: 'hsl(var(--bg-200))',
+            border: 'none',
             borderRadius: '4px',
             color: 'var(--muted-foreground)',
             fontSize: '11px',
@@ -68,10 +68,10 @@ export const CollapsibleMessage: React.FC<CollapsibleMessageProps> = ({
             transition: 'all 0.2s ease'
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'
+            e.currentTarget.style.background = 'hsl(var(--bg-300))'
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'
+            e.currentTarget.style.background = 'hsl(var(--bg-200))'
           }}
         >
           {isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}

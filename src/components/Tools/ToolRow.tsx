@@ -290,7 +290,7 @@ export const ToolRow: React.FC<ToolRowProps> = ({
           borderRadius: '8px',
           margin: '4px 0',
           transition: 'all 0.15s ease',
-          border: '1px solid transparent',
+          border: 'none',
           position: 'relative'
         }}
       >
@@ -381,7 +381,7 @@ export const ToolRow: React.FC<ToolRowProps> = ({
             paddingBottom: '12px',
             background: 'hsl(var(--bg-100))',
             borderRadius: '6px',
-            border: '1px solid hsl(var(--border-100))',
+            border: 'none',
             marginLeft: hideStatusDot ? '0' : '18px'
           }}>
             {/* Parameters */}

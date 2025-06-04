@@ -73,7 +73,7 @@ export const ToolPreview: React.FC<ToolPreviewProps> = ({
     
     // If not enough space below but enough space above, show above the tool row
     if (spaceBelow < previewHeight + 20 && spaceAbove >= previewHeight + 20) {
-      top = position.y - previewHeight - 10 // 10px gap above
+      top = position.y - previewHeight - 2 // 2px gap between preview bottom and tool row top
     } else {
       // Default: align top with tool row
       top = position.y
@@ -88,7 +88,7 @@ export const ToolPreview: React.FC<ToolPreviewProps> = ({
         } else {
           // Not enough space below, position above if possible
           if (spaceAbove >= 400) {
-            top = Math.max(20, position.y - previewHeight - 10)
+            top = Math.max(20, position.y - previewHeight - 2) // 2px gap above tool row
           } else {
             // Center vertically in viewport as last resort
             top = Math.max(20, (viewportHeight - previewHeight) / 2)
@@ -235,10 +235,10 @@ export const ToolPreview: React.FC<ToolPreviewProps> = ({
         left: smartPos.left,
         top: smartPos.top,
         zIndex: 2000,
-        backgroundColor: 'var(--background)',
-        border: '2px solid var(--accent)',
+        backgroundColor: 'hsl(var(--bg-100))',
+        border: 'none',
         borderRadius: '8px',
-        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.08)',
+        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.25), 0 10px 10px -5px rgba(0, 0, 0, 0.15)',
         width: `${smartPos.width}px`,
         maxWidth: `${smartPos.width}px`,
         maxHeight: `${smartPos.height}px`,
@@ -251,7 +251,7 @@ export const ToolPreview: React.FC<ToolPreviewProps> = ({
       {/* Header */}
       <div style={{
         padding: '12px',
-        borderBottom: '1px solid var(--border)',
+        borderBottom: '1px solid hsl(var(--bg-300))',
         background: 'var(--secondary)'
       }}>
         <div style={{
@@ -343,7 +343,7 @@ export const ToolPreview: React.FC<ToolPreviewProps> = ({
             color: status === 'error' ? '#ef4444' : 'var(--muted-foreground)',
             lineHeight: '1.4',
             fontFamily: 'SF Mono, Monaco, Cascadia Code, monospace',
-            background: status === 'error' ? 'rgba(239, 68, 68, 0.1)' : 'var(--secondary)',
+            background: status === 'error' ? 'rgba(239, 68, 68, 0.1)' : 'hsl(var(--bg-200))',
             padding: '12px',
             borderRadius: '6px',
             whiteSpace: 'pre-wrap',

@@ -353,7 +353,7 @@ body {
 /* Collapsible message styles */
 .collapse-toggle {
   background: hsl(var(--bg-200));
-  border: 1px solid hsl(var(--border-100));
+  border: none;
   border-radius: 4px;
   color: var(--muted-foreground);
   cursor: pointer;
@@ -431,7 +431,7 @@ body {
 }
 
 .tool-container {
-  border: 1px solid hsl(var(--border-100));
+  border: none;
   border-radius: 8px;
   margin: 8px 0;
   overflow: hidden;
@@ -509,7 +509,7 @@ body {
   border-radius: 12px;
   overflow: hidden;
   background: var(--muted);
-  border: 1px solid var(--border);
+  border: none;
 }
 
 .code-block pre {
@@ -525,7 +525,7 @@ body {
   align-items: center;
   padding: 8px 16px;
   background: var(--secondary);
-  border-bottom: 1px solid var(--border);
+  border-bottom: none;
   font-size: 12px;
   color: var(--muted-foreground);
   font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
@@ -625,7 +625,7 @@ body {
 
 .dark .hljs {
   color: hsl(var(--text-000));
-  background: hsl(var(--bg-400));
+  background: hsl(var(--bg-300));
 }
 
 .hljs-comment,
