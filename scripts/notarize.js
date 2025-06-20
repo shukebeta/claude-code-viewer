@@ -18,7 +18,7 @@ exports.default = async function notarizing(context) {
       appBundleId: 'com.mainpy.claude-code-viewer',
       appPath: `${appOutDir}/${appName}.app`,
       appleId: process.env.APPLE_ID,
-      appleIdPassword: process.env.APPLE_PASSWORD,
+      appleIdPassword: process.env.APPLE_APP_SPECIFIC_PASSWORD,
       teamId: process.env.APPLE_TEAM_ID
     });
     

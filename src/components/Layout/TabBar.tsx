@@ -34,8 +34,9 @@ export const TabBar: React.FC = () => {
         alignItems: 'center',
         paddingLeft: sidebarCollapsed ? '120px' : '12px',
         paddingRight: '12px',
-        fontSize: '13px'
-      }}>
+        fontSize: '13px',
+        WebkitAppRegion: 'drag'
+      } as React.CSSProperties}>
         <div style={{
           flex: 1,
           display: 'flex',

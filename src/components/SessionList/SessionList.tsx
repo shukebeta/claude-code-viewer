@@ -6,8 +6,6 @@ import { formatTime, formatDate, formatCurrency } from '@/utils/formatters'
 export const SessionList: React.FC = () => {
   const { sessions, selectedSessionId, selectSession, addTab, projects, selectedProjectPath } = useAppStore()
   
-  console.log('SessionList render - sessions:', sessions)
-  console.log('SessionList render - selectedProjectPath:', selectedProjectPath)
   
   const handleSessionClick = async (session: any) => {
     selectSession(session.id)
@@ -24,7 +22,6 @@ export const SessionList: React.FC = () => {
       ? formatDate(new Date(session.mtime))
       : 'Unknown Date'
     
-    console.log('Processing session:', session.id, 'dateKey:', dateKey)
     
     if (!acc[dateKey]) acc[dateKey] = []
     acc[dateKey].push(session)
@@ -40,7 +37,6 @@ export const SessionList: React.FC = () => {
     })
   })
   
-  console.log('SessionsByDate:', sessionsByDate)
   
   // Sort dates with custom logic for Today, Yesterday, etc.
   const getDatePriority = (dateStr: string): number => {
@@ -61,11 +57,9 @@ export const SessionList: React.FC = () => {
   const sortedDates = Object.keys(sessionsByDate).sort((a, b) => {
     const priorityA = getDatePriority(a)
     const priorityB = getDatePriority(b)
-    console.log(`Sorting: "${a}" (priority: ${priorityA}) vs "${b}" (priority: ${priorityB})`)
     return priorityA - priorityB
   })
   
-  console.log('Final sorted dates:', sortedDates)
   
   return (
     <div style={{ padding: '4px' }}>

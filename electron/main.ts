@@ -1,10 +1,15 @@
-import { app, BrowserWindow, ipcMain, shell, protocol, Menu } from 'electron'
+import { app, BrowserWindow, ipcMain, shell, protocol, Menu, globalShortcut } from 'electron'
 import { join } from 'path'
 import { homedir } from 'os'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { getProjects, getSessions, readSessionFile } from './fileSystem'
 import { watchFile, unwatchFile, unwatchAll } from './fileWatcher'
 import { installCLI } from './cliInstaller'
+
+console.log('[Main] Starting Electron app...')
+console.log('[Main] Process argv:', process.argv)
+console.log('[Main] Is dev:', is.dev)
+console.log('[Main] ELECTRON_RENDERER_URL:', process.env['ELECTRON_RENDERER_URL'])
 
 let mainWindow: BrowserWindow | null = null
 let deepLinkUrl: string | null = null
@@ -103,31 +108,33 @@ function createMenu(): void {
         { type: 'separator' },
         {
           label: 'Zoom In',
-          accelerator: 'Cmd+Plus',
+          accelerator: 'CommandOrControl+Plus',
           click: () => {
             const focusedWindow = BrowserWindow.getFocusedWindow()
             if (focusedWindow) {
-              focusedWindow.webContents.send('menu-zoom-in')
+              const currentZoom = focusedWindow.webContents.getZoomFactor()
+              focusedWindow.webContents.setZoomFactor(currentZoom + 0.1)
             }
           }
         },
         {
-          label: 'Zoom Out',
-          accelerator: 'Cmd+-',
+          label: 'Zoom Out', 
+          accelerator: 'CommandOrControl+-',
           click: () => {
             const focusedWindow = BrowserWindow.getFocusedWindow()
             if (focusedWindow) {
-              focusedWindow.webContents.send('menu-zoom-out')
+              const currentZoom = focusedWindow.webContents.getZoomFactor()
+              focusedWindow.webContents.setZoomFactor(Math.max(0.5, currentZoom - 0.1))
             }
           }
         },
         {
           label: 'Reset Zoom',
-          accelerator: 'Cmd+0',
+          accelerator: 'CommandOrControl+0',
           click: () => {
             const focusedWindow = BrowserWindow.getFocusedWindow()
             if (focusedWindow) {
-              focusedWindow.webContents.send('menu-zoom-reset')
+              focusedWindow.webContents.setZoomFactor(1.0)
             }
           }
         },
@@ -208,6 +215,30 @@ function createWindow(deepLink?: string): void {
     if (is.dev) {
       window.webContents.openDevTools()
     }
+  })
+  
+  window.on('focus', () => {
+    // 창이 포커스될 때 로컬 단축키 등록
+    globalShortcut.register('CommandOrControl+-', () => {
+      const currentZoom = window.webContents.getZoomFactor()
+      window.webContents.setZoomFactor(Math.max(0.5, currentZoom - 0.1))
+    })
+    
+    globalShortcut.register('CommandOrControl+=', () => {
+      const currentZoom = window.webContents.getZoomFactor()
+      window.webContents.setZoomFactor(currentZoom + 0.1)
+    })
+    
+    globalShortcut.register('CommandOrControl+0', () => {
+      window.webContents.setZoomFactor(1.0)
+    })
+  })
+  
+  window.on('blur', () => {
+    // 창이 포커스를 잃으면 단축키 해제
+    globalShortcut.unregister('CommandOrControl+-')
+    globalShortcut.unregister('CommandOrControl+=')
+    globalShortcut.unregister('CommandOrControl+0')
   })
   
   window.on('closed', () => {
@@ -311,9 +342,13 @@ if (process.defaultApp) {
 // Windows/Linux deep link 처리
 const gotTheLock = app.requestSingleInstanceLock()
 
+console.log('[Main] Got the lock:', gotTheLock)
+
 if (!gotTheLock) {
+  console.log('[Main] Another instance is running, quitting...')
   app.quit()
 } else {
+  console.log('[Main] This is the first instance')
   app.on('second-instance', (_, commandLine) => {
     // 이미 실행 중인 인스턴스가 있을 때
     // Deep link URL 찾기
@@ -340,6 +375,7 @@ app.on('open-url', (event, url) => {
 })
 
 app.whenReady().then(() => {
+  console.log('[Main] App is ready!')
   electronApp.setAppUserModelId('com.mainpy.claude-code-viewer')
 
   // 메뉴 생성
@@ -362,8 +398,10 @@ app.whenReady().then(() => {
 })
 
 app.on('window-all-closed', () => {
+  console.log('[Main] All windows closed')
   unwatchAll()
   if (process.platform !== 'darwin') {
+    console.log('[Main] Not macOS, quitting app')
     app.quit()
   }
 })

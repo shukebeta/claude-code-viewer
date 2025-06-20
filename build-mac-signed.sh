@@ -12,17 +12,17 @@ else
     echo "❌ .env 파일을 찾을 수 없습니다!"
     echo "📝 .env 파일을 생성하고 다음 정보를 입력하세요:"
     echo "   APPLE_ID=your-email@example.com"
-    echo "   APPLE_PASSWORD=your-app-specific-password"
+    echo "   APPLE_APP_SPECIFIC_PASSWORD=your-app-specific-password"
     echo "   APPLE_TEAM_ID=XXXXXXXXXX"
     exit 1
 fi
 
 # 환경 변수 확인
-if [ -z "$APPLE_ID" ] || [ -z "$APPLE_PASSWORD" ] || [ -z "$APPLE_TEAM_ID" ]; then
+if [ -z "$APPLE_ID" ] || [ -z "$APPLE_APP_SPECIFIC_PASSWORD" ] || [ -z "$APPLE_TEAM_ID" ]; then
     echo "❌ 필수 환경 변수가 설정되지 않았습니다!"
     echo "📝 .env 파일에 다음 정보가 모두 있는지 확인하세요:"
     echo "   APPLE_ID=$APPLE_ID"
-    echo "   APPLE_PASSWORD=(설정되어 있음: $([ -z "$APPLE_PASSWORD" ] && echo "아니오" || echo "예"))"
+    echo "   APPLE_APP_SPECIFIC_PASSWORD=(설정되어 있음: $([ -z "$APPLE_APP_SPECIFIC_PASSWORD" ] && echo "아니오" || echo "예"))"
     echo "   APPLE_TEAM_ID=$APPLE_TEAM_ID"
     exit 1
 fi

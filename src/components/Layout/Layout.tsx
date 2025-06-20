@@ -51,6 +51,7 @@ export const Layout: React.FC = () => {
   useEffect(() => {
     // Handle keyboard shortcuts
     const handleKeydown = (e: KeyboardEvent) => {
+      
       // Note: Cmd+T, Cmd+N, Cmd+W, Cmd+B are now handled by Electron menu
       // Only handle shortcuts that aren't in the menu
       

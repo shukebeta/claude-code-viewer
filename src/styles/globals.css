@@ -535,7 +535,6 @@ body {
 .tab-bar {
   background: var(--secondary);
   border-bottom: 1px solid var(--border);
-  -webkit-app-region: drag;
 }
 
 .tab {
