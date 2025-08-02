@@ -6,11 +6,12 @@ Claude Code Viewer is a desktop application for viewing and analyzing Claude Cod
 
 Working with Claude in the terminal is powerful, but long sessions can become hard to navigate. Claude Code Viewer bridges this gap by providing a visual interface that makes your sessions readable and manageable.
 
-**The workflow is simple:**
-- Use Claude in your terminal for coding
-- Pop open the viewer with `ccviewer` to see the full conversation beautifully formatted
-- Copy session commands from the viewer to continue where you left off
-- Jump between terminal and viewer seamlessly
+**The bidirectional workflow:**
+- **Terminal → Viewer**: Type `ccviewer` in any Claude session to instantly open it in the viewer
+- **Viewer → Terminal**: Click the resume button to copy the command and continue in your terminal
+- Switch back and forth as needed - code in terminal, review in viewer
+
+This seamless integration means you get the best of both worlds: the power of terminal for active coding and the clarity of a visual interface for understanding complex conversations, reviewing long outputs, or catching up on previous work.
 
 Think of it as your session's reading glasses - everything becomes clearer when you need to review what happened, understand complex outputs, or share your work with others.
 
