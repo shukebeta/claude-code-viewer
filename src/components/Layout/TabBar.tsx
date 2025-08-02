@@ -37,6 +37,7 @@ export const TabBar: React.FC = () => {
             className="btn-icon"
             style={{ 
               padding: '6px', 
+              marginLeft: '68px',
               marginRight: '8px',
               WebkitAppRegion: 'no-drag'
             } as React.CSSProperties}

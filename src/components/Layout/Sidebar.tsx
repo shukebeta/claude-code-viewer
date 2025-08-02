@@ -85,8 +85,7 @@ export const Sidebar: React.FC = () => {
           flexDirection: 'column',
           zIndex: 10,
           background: 'var(--background)',
-          borderRight: '1px solid var(--border)',
-          paddingTop: '28px' // Safe area for macOS traffic lights
+          borderRight: '1px solid var(--border)'
         }}>
       {/* Traffic light area + header */}
       <div style={{
@@ -172,7 +171,7 @@ export const Sidebar: React.FC = () => {
       style={{
         position: 'fixed',
         left: `${sidebarWidth - 2}px`,
-        top: 0,
+        top: '28px', // Match the paddingTop of sidebar
         bottom: 0,
         width: '4px',
         cursor: 'col-resize',
