@@ -127,8 +127,11 @@ if (!sessionInfo) {
 // Deep link URL 생성
 const deepLink = `claude-viewer://open?sessionId=${encodeURIComponent(sessionInfo.sessionId)}&projectPath=${encodeURIComponent(sessionInfo.projectPath)}&jsonlFile=${encodeURIComponent(sessionInfo.jsonlFile)}`;
 
-// 깔끔한 출력 - Project와 Session ID만
-console.log(`\nProject: ${sessionInfo.originalPath}`);
+// 프로젝트 이름 추출 (경로에서 변환된 실제 프로젝트 폴더명)
+const projectName = path.basename(sessionInfo.projectPath);
+
+// 깔끔한 출력
+console.log(`\nProject: ${projectName}`);
 console.log(`Session: ${sessionInfo.sessionId}\n`);
 
 // 개발 모드 확인 (환경변수 또는 --dev 플래그)

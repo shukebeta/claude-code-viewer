@@ -11,15 +11,17 @@ interface SessionViewerProps {
 }
 
 export const SessionViewer: React.FC<SessionViewerProps> = ({ tab }) => {
-  const { messages, setMessages, sessionsByProject, selectProject, setActiveTab } = useAppStore()
+  const { messages, setMessages, sessionsByProject, selectProject, setActiveTab, loadSessionsForProject, createProjectTab } = useAppStore()
   const [isLive, setIsLive] = useState(false)
   const [autoScroll, setAutoScroll] = useState(true)
   const [currentMessageIndex, setCurrentMessageIndex] = useState<number | undefined>()
   const [copied, setCopied] = useState(false)
   const [isNarrow, setIsNarrow] = useState(false)
+  const [sessionLoading, setSessionLoading] = useState(false)
+  const [sessionError, setSessionError] = useState<string | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const messageRefs = useRef<(HTMLDivElement | null)[]>([])
-  const sessionMessages = messages[tab.sessionId] || []
+  const sessionMessages = messages[tab.sessionId || ''] || []
   
   // Process messages to merge tool calls and results
   const processedMessages = React.useMemo(() => {
@@ -105,25 +107,37 @@ export const SessionViewer: React.FC<SessionViewerProps> = ({ tab }) => {
     return groups
   }, [processedMessages])
   
-  // Find the session details from all project sessions
-  let session = null
-  for (const projectPath in sessionsByProject) {
-    const projectSessions = sessionsByProject[projectPath]
-    const found = projectSessions.find(s => s.id === tab.sessionId)
-    if (found) {
-      session = found
-      break
+  // Find the session details - first check if sessions are loaded for this project
+  const projectSessions = sessionsByProject[tab.projectPath] || []
+  const session = projectSessions.find(s => s.id === tab.sessionId) || null
+  
+  // Load sessions for this project if not already loaded
+  useEffect(() => {
+    const loadSessionsIfNeeded = async () => {
+      if (!sessionsByProject[tab.projectPath] && tab.sessionId && !sessionLoading) {
+        setSessionLoading(true)
+        setSessionError(null)
+        try {
+          await loadSessionsForProject(tab.projectPath)
+        } catch (error) {
+          console.error('Failed to load sessions:', error)
+          setSessionError('Failed to load session data')
+        } finally {
+          setSessionLoading(false)
+        }
+      }
     }
-  }
+    loadSessionsIfNeeded()
+  }, [tab.projectPath, tab.sessionId, sessionsByProject, loadSessionsForProject, sessionLoading])
   
   console.log('[SessionViewer] Looking for session:', tab.sessionId)
-  console.log('[SessionViewer] Available sessions by project:', sessionsByProject)
+  console.log('[SessionViewer] Project sessions loaded:', !!sessionsByProject[tab.projectPath])
   console.log('[SessionViewer] Found session:', session)
   
   const handleCopyCommand = () => {
-    if (!session || !tab.actualProjectPath) return
+    if (!session || !tab.sessionId) return
     
-    const projectPath = tab.actualProjectPath
+    const projectPath = tab.projectPath
     const sessionId = tab.sessionId
     
     // Get custom command from localStorage
@@ -174,7 +188,7 @@ export const SessionViewer: React.FC<SessionViewerProps> = ({ tab }) => {
     
     try {
       const newMessages = await window.api.readFile(session.filePath)
-      setMessages(tab.sessionId, newMessages)
+      setMessages(tab.sessionId || '', newMessages)
     } catch (error) {
       console.error('Error loading messages:', error)
     }
@@ -239,6 +253,52 @@ export const SessionViewer: React.FC<SessionViewerProps> = ({ tab }) => {
     return () => window.removeEventListener('resize', handleResize)
   }, [])
   
+  // Show loading state if sessions are being loaded
+  if (sessionLoading) {
+    return (
+      <div style={{
+        flex: 1,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: 'var(--muted-foreground)'
+      }}>
+        Loading session...
+      </div>
+    )
+  }
+  
+  // Show error state if there was an error loading sessions
+  if (sessionError) {
+    return (
+      <div style={{
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: 'var(--destructive-foreground)',
+        gap: '8px'
+      }}>
+        <div>Error: {sessionError}</div>
+        <button 
+          onClick={() => window.location.reload()}
+          style={{
+            padding: '8px 16px',
+            border: '1px solid var(--border)',
+            borderRadius: '6px',
+            background: 'var(--background)',
+            color: 'var(--foreground)',
+            cursor: 'pointer'
+          }}
+        >
+          Reload
+        </button>
+      </div>
+    )
+  }
+  
+  // Show session not found if session is not available after loading
   if (!session) {
     return (
       <div style={{
@@ -280,9 +340,8 @@ export const SessionViewer: React.FC<SessionViewerProps> = ({ tab }) => {
         }}>
           <button
             onClick={() => {
-              // Navigate to project session list
-              selectProject(tab.fullProjectPath || tab.actualProjectPath)
-              setActiveTab(`project-${tab.projectName}`)
+              // Create or switch to project tab
+              createProjectTab(tab.projectPath)
             }}
             style={{
               fontSize: '14px',
@@ -308,7 +367,7 @@ export const SessionViewer: React.FC<SessionViewerProps> = ({ tab }) => {
             }}
             title={tab.projectName}
           >
-            {tab.projectName.split('/').pop() || tab.projectName}
+            {tab.projectPath.split('/').pop() || 'Unknown Project'}
           </button>
           <ChevronRight size={16} style={{ color: 'var(--muted-foreground)', flexShrink: 0 }} />
           <div style={{

@@ -22,11 +22,30 @@ export const RecentSessions: React.FC<RecentSessionsProps> = ({ limit = 10, show
   const [hoveredSession, setHoveredSession] = useState<string | null>(null)
   const [previewPosition, setPreviewPosition] = useState({ x: 0, y: 0, width: 0, height: 0 })
   const hoverTimeoutRef = useRef<NodeJS.Timeout>()
-  const { addTab, setActiveTab, setSessionsForProject } = useAppStore()
+  const { createSessionTab, setSessionsForProject, getRecentSessionsCache, setRecentSessionsCache } = useAppStore()
 
   useEffect(() => {
-    loadRecentSessions()
-  }, [])
+    // Check cache first
+    const { data: cachedData, isValid } = getRecentSessionsCache()
+    
+    if (isValid && cachedData) {
+      // Use cached data
+      setRecentSessions(cachedData.slice(0, limit))
+      setLoading(false)
+      
+      // Load projects map for session clicks
+      window.api.getProjects().then(projects => {
+        const projMap: Record<string, any> = {}
+        projects.forEach(p => {
+          projMap[p.path] = p
+        })
+        setProjectsMap(projMap)
+      })
+    } else {
+      // Load fresh data
+      loadRecentSessions()
+    }
+  }, [limit, getRecentSessionsCache])
 
   const loadRecentSessions = async () => {
     try {
@@ -46,12 +65,12 @@ export const RecentSessions: React.FC<RecentSessionsProps> = ({ limit = 10, show
       
       for (const project of projects) {
         const sessions = await window.api.getSessions(project.path)
-        // Store sessions for this project
-        setSessionsForProject(project.path, sessions)
+        // Store sessions for this project using real path as key
+        setSessionsForProject(project.name, sessions)
         const sessionsWithProject = sessions.map(session => ({
           ...session,
           projectName: project.name.split('/').pop() || project.name,
-          projectPath: project.path
+          projectPath: project.name  // Use project.name which is the resolved path
         }))
         allSessions.push(...sessionsWithProject)
       }
@@ -63,6 +82,11 @@ export const RecentSessions: React.FC<RecentSessionsProps> = ({ limit = 10, show
         .slice(0, limit)
       
       setRecentSessions(sorted)
+      
+      // Cache all sessions (not just the limited ones)
+      setRecentSessionsCache(allSessions
+        .filter(s => s.startTime)
+        .sort((a, b) => new Date(b.startTime!).getTime() - new Date(a.startTime!).getTime()))
     } catch (error) {
       console.error('Error loading recent sessions:', error)
     } finally {
@@ -71,10 +95,7 @@ export const RecentSessions: React.FC<RecentSessionsProps> = ({ limit = 10, show
   }
 
   const handleSessionClick = (session: SessionWithProject) => {
-    const tabId = `${session.projectName}-${session.id}`
-    const project = projectsMap[session.projectPath] || { name: session.projectPath, path: session.projectPath, sessionCount: 0 }
-    addTab(session, project)
-    setActiveTab(tabId)
+    createSessionTab(session.id, session.projectPath, session.id.substring(0, 8))
   }
 
   const handleMouseEnter = (session: SessionWithProject, event: React.MouseEvent) => {

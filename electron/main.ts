@@ -149,7 +149,7 @@ function createMenu(): void {
       label: 'Window',
       submenu: [
         { label: 'Minimize', accelerator: 'Cmd+M', role: 'minimize' },
-        { label: 'Close', accelerator: 'Cmd+W', role: 'close' }
+        { label: 'Close Window', accelerator: 'Cmd+Shift+W', role: 'close' }
       ]
     }
   ]
@@ -178,9 +178,7 @@ function createMenu(): void {
         { label: 'Minimize', accelerator: 'Cmd+M', role: 'minimize' },
         { label: 'Zoom', role: 'zoom' },
         { type: 'separator' },
-        { label: 'Bring All to Front', role: 'front' },
-        { type: 'separator' },
-        { label: 'Close', accelerator: 'Cmd+W', role: 'close' }
+        { label: 'Bring All to Front', role: 'front' }
       ]
     }
   }

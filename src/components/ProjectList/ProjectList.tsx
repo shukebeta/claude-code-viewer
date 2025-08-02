@@ -7,7 +7,7 @@ interface ProjectListProps {
 }
 
 export const ProjectList: React.FC<ProjectListProps> = ({ searchQuery = '' }) => {
-  const { projects, selectedProjectPath, selectProject, setSessions, setSessionsForProject, setActiveTab, addTab, tabs } = useAppStore()
+  const { projects, selectedProjectPath, selectProject, setSessions, setSessionsForProject, setActiveTab, createProjectTab, tabs } = useAppStore()
   
   // Filter projects based on search query
   const filteredProjects = projects.filter(project => {
@@ -16,32 +16,15 @@ export const ProjectList: React.FC<ProjectListProps> = ({ searchQuery = '' }) =>
     return projectName.includes(query)
   })
   
-  const handleProjectClick = async (projectPath: string) => {
-    selectProject(projectPath)
+  const handleProjectClick = async (project: any) => {
+    selectProject(project.name) // Use real path for UI state
     try {
-      const sessions = await window.api.getSessions(projectPath)
+      const sessions = await window.api.getSessions(project.path) // Use Claude path for API
       setSessions(sessions)
-      setSessionsForProject(projectPath, sessions)
+      setSessionsForProject(project.name, sessions) // Use real path as key
       
-      // If user clicks the same project again or wants to see session list, 
-      // create a new tab or switch to a tab that shows session list
-      const project = projects.find(p => p.path === projectPath)
-      if (project) {
-        // Create a new tab to show session list
-        const newTabId = `project-${Date.now()}`
-        // For project tabs, we need to pass a special session object that has the project name
-        const projectSession = {
-          id: newTabId,
-          filePath: '',
-          projectPath: projectPath,
-          messageCount: 0,
-          totalCost: 0,
-          // Add projectName to use for tab display
-          projectName: project.name.split('/').pop() || project.name
-        } as any
-        addTab(projectSession, project)
-        setActiveTab(newTabId)
-      }
+      // Create a project tab to show session list
+      createProjectTab(project.name) // Use real path for tab
     } catch (error) {
       console.error('Error loading sessions:', error)
     }
@@ -52,7 +35,7 @@ export const ProjectList: React.FC<ProjectListProps> = ({ searchQuery = '' }) =>
       {filteredProjects.map((project) => (
         <div
           key={project.path}
-          onClick={() => handleProjectClick(project.path)}
+          onClick={() => handleProjectClick(project)}
           style={{
             padding: '12px 16px',
             margin: '4px 0',

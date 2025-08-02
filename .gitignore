@@ -23,6 +23,7 @@ yarn-error.log*
 # Local env files
 .env*.local
 .env
+.env.notarize
 
 # IDE
 .vscode/
@@ -54,3 +55,12 @@ logs/
 *.temp
 .tmp/
 .temp/
+
+# Security & Certificates
+*.key
+*.p12
+*.csr
+DeveloperID.*
+
+# Homebrew development
+homebrew-tap/

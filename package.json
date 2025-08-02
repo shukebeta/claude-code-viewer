@@ -1,7 +1,10 @@
 {
   "name": "claude-code-viewer",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "main": "dist/main/main.js",
+  "bin": {
+    "ccviewer": "./cli/claude-viewer-cli.js"
+  },
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
@@ -31,6 +34,7 @@
     "@vitejs/plugin-react": "^4.5.0",
     "autoprefixer": "^10.4.21",
     "concurrently": "^9.1.2",
+    "dotenv": "^17.0.1",
     "electron": "^36.3.1",
     "electron-builder": "^26.0.12",
     "electron-vite": "^3.1.0",
@@ -71,7 +75,9 @@
       {
         "from": "cli",
         "to": "cli",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       }
     ],
     "mac": {
@@ -83,12 +89,30 @@
       "protocols": [
         {
           "name": "Claude Viewer",
-          "schemes": ["claude-viewer"]
+          "schemes": [
+            "claude-viewer"
+          ]
         }
       ]
     },
     "dmg": {
-      "sign": false
+      "sign": true,
+      "contents": [
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ],
+      "window": {
+        "width": 540,
+        "height": 380
+      }
     },
     "afterSign": "scripts/notarize.js",
     "win": {
@@ -96,7 +120,9 @@
       "protocols": [
         {
           "name": "Claude Viewer",
-          "schemes": ["claude-viewer"]
+          "schemes": [
+            "claude-viewer"
+          ]
         }
       ]
     },
@@ -105,7 +131,9 @@
       "protocols": [
         {
           "name": "Claude Viewer",
-          "schemes": ["claude-viewer"]
+          "schemes": [
+            "claude-viewer"
+          ]
         }
       ]
     }

@@ -1,4 +1,6 @@
 const { notarize } = require('@electron/notarize');
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '..', '.env.notarize') });
 
 exports.default = async function notarizing(context) {
   const { electronPlatformName, appOutDir } = context;
@@ -12,6 +14,10 @@ exports.default = async function notarizing(context) {
   
   console.log('Starting notarization process...');
   console.log(`App: ${appOutDir}/${appName}.app`);
+  console.log('Environment variables check:');
+  console.log('APPLE_ID:', process.env.APPLE_ID ? 'Set' : 'Not set');
+  console.log('APPLE_APP_SPECIFIC_PASSWORD:', process.env.APPLE_APP_SPECIFIC_PASSWORD ? 'Set' : 'Not set');
+  console.log('APPLE_TEAM_ID:', process.env.APPLE_TEAM_ID ? 'Set' : 'Not set');
   
   try {
     await notarize({

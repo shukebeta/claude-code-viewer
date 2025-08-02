@@ -11,24 +11,34 @@ export const Layout: React.FC = () => {
   
   useEffect(() => {
     // Handle menu events from Electron
-    window.api?.onMenuAction?.((action: string) => {
+    const handleMenuAction = (action: string) => {
       switch (action) {
         case 'new-tab': {
-          // Instead of creating an empty tab, navigate to dashboard
-          const { setActiveTab } = useAppStore.getState()
-          setActiveTab('dashboard')
+          // Create or switch to dashboard tab
+          const { ensureDashboardTab } = useAppStore.getState()
+          ensureDashboardTab()
           break
         }
         case 'close-tab': {
+          console.log('[Layout] close-tab event received')
+          const { activeTabId, tabs, removeTab } = useAppStore.getState()
+          console.log('[Layout] Current activeTabId:', activeTabId)
+          console.log('[Layout] Current tabs.length:', tabs.length)
+          console.log('[Layout] Current tabs:', tabs.map(t => ({ id: t.id, type: t.type })))
+          
           if (activeTabId && tabs.length > 0) {
-            const { removeTab } = useAppStore.getState()
+            console.log('[Layout] Calling removeTab with activeTabId:', activeTabId)
             removeTab(activeTabId)
+          } else {
+            console.log('[Layout] Not removing tab - activeTabId or tabs missing')
           }
           break
         }
-        case 'toggle-sidebar':
+        case 'toggle-sidebar': {
+          const { toggleSidebar } = useAppStore.getState()
           toggleSidebar()
           break
+        }
         case 'zoom-in': {
           const currentZoom = parseFloat(document.documentElement.style.fontSize || '16px')
           const newZoom = Math.min(currentZoom + 1, 24)
@@ -45,8 +55,16 @@ export const Layout: React.FC = () => {
           document.documentElement.style.fontSize = '16px'
           break
       }
-    })
-  }, [toggleSidebar, activeTabId, tabs.length])
+    }
+    
+    // Register the handler
+    const removeListener = window.api?.onMenuAction?.(handleMenuAction)
+    
+    // Cleanup on unmount
+    return () => {
+      if (removeListener) removeListener()
+    }
+  }, [])
   
   useEffect(() => {
     // Handle keyboard shortcuts
@@ -76,12 +94,12 @@ export const Layout: React.FC = () => {
     
     window.addEventListener('keydown', handleKeydown)
     return () => window.removeEventListener('keydown', handleKeydown)
-  }, [toggleSidebar, activeTabId, tabs.length])
+  }, [])
   
-  const isDashboard = activeTabId === 'dashboard'
-  const isNewTab = activeTabId?.startsWith('new-tab-')
-  const isProjectTab = activeTabId?.startsWith('project-')
   const activeTab = tabs.find(t => t.id === activeTabId)
+  const isDashboard = activeTab?.type === 'dashboard'
+  const isProjectTab = activeTab?.type === 'project'
+  const isSessionTab = activeTab?.type === 'session'
   
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', overflow: 'hidden' }}>
@@ -97,12 +115,16 @@ export const Layout: React.FC = () => {
           flexDirection: 'column',
           transition: 'margin-left 0.2s ease'
         }}>
-          {isDashboard || isNewTab ? (
+          {isDashboard ? (
             <Dashboard />
-          ) : isProjectTab || !activeTab ? (
-            <SessionListView />
-          ) : (
+          ) : isProjectTab ? (
+            <SessionListView projectPath={activeTab.projectPath} />
+          ) : isSessionTab ? (
             <SessionViewer tab={activeTab} />
+          ) : !activeTab ? (
+            <Dashboard />
+          ) : (
+            <Dashboard />
           )}
         </main>
       </div>

@@ -6,21 +6,14 @@ import { findMatchingProject } from '@/utils/projectPathUtils'
 import './styles/globals.css'
 
 function App(): JSX.Element {
-  const { setProjects, setSessions, setSessionsForProject, addTab, setActiveTab, selectProject } = useAppStore()
+  const { setProjects, setSessions, setSessionsForProject, createSessionTab, ensureDashboardTab, selectProject } = useAppStore()
   
   useEffect(() => {
     // Load projects on app start
     loadProjects()
     
-    // Create dashboard tab on first load
-    const hasInitialized = localStorage.getItem('hasInitialized')
-    if (!hasInitialized) {
-      setActiveTab('dashboard')
-      localStorage.setItem('hasInitialized', 'true')
-    } else {
-      // Always show dashboard on app start
-      setActiveTab('dashboard')
-    }
+    // Always ensure dashboard tab exists and is active on app start
+    ensureDashboardTab()
     
     // Handle dev mode URL parameters
     handleDevModeParams()
@@ -64,8 +57,8 @@ function App(): JSX.Element {
           const sessions = await window.api.getSessions(project.path)
           console.log('[App] Loaded sessions:', sessions.length)
           
-          // IMPORTANT: Set sessions in the store for this specific project
-          setSessionsForProject(project.path, sessions)
+          // IMPORTANT: Set sessions in the store using the real path as key
+          setSessionsForProject(project.name, sessions)
           
           // If sessionId is provided, open that specific session
           if (params.sessionId) {
@@ -79,27 +72,18 @@ function App(): JSX.Element {
             
             console.log('[App] Found session:', session)
             
-            // Create and activate tab
-            // project.name에 슬래시가 포함되어 있으므로 안전한 ID 생성
-            const projectDisplayName = project.path.split('/').pop() || 'project'
-            const tabId = `${projectDisplayName}-${session.id}`
-            console.log('[App] Creating tab with ID:', tabId)
-            console.log('[App] Project info:', { name: project.name, path: project.path, displayName: projectDisplayName })
+            // Create and activate tab using new method
+            const sessionName = session.id.substring(0, 8)
+            console.log('[App] Creating session tab:', { sessionId: session.id, projectPath: project.name, sessionName })
             
-            addTab(session, project)
+            createSessionTab(session.id, project.name, sessionName)
             
-            // 탭이 생성된 후 활성화
-            setTimeout(() => {
-              console.log('[App] Activating tab:', tabId)
-              setActiveTab(tabId)
-            }, 100)
-            
-            console.log('[App] Tab created and activation scheduled')
+            console.log('[App] Session tab created and activated')
           } else {
             // If no sessionId, just show the project's session list
             console.log('[App] No sessionId provided, showing project sessions')
             // Select the project to show its sessions in the UI
-            selectProject(project.path)
+            selectProject(project.name)
             // The sessions are already loaded and set in the store
             // The UI will automatically show the session list for this project
           }
@@ -127,21 +111,9 @@ function App(): JSX.Element {
         
         console.log('[DEV MODE] Opening session:', tabId)
         
-        // Add tab and activate it with full project path info
-        const mockSession = { 
-          id: sessionId, 
-          filePath: jsonlFile || '', 
-          projectPath: projectPath,
-          messageCount: 0,
-          totalCost: 0
-        } as any
-        const mockProject = { 
-          name: projectName, 
-          path: projectPath, 
-          sessionCount: 0 
-        }
-        addTab(mockSession, mockProject)
-        setActiveTab(tabId)
+        // Create session tab using new method
+        const sessionName = sessionId.substring(0, 8)
+        createSessionTab(sessionId, projectPath, sessionName)
         
         // Clear the URL to avoid re-triggering
         window.history.replaceState({}, '', '/')

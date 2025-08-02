@@ -32,12 +32,11 @@ export interface Message {
 }
 
 export interface Tab {
-  id: string
-  sessionId: string
-  sessionName: string
-  projectName: string
-  fullProjectPath?: string
-  actualProjectPath?: string  // Real project path like /Users/lullu/mainpy/project
+  id: string              // Use sessionId directly for session tabs
+  type: 'session' | 'dashboard' | 'project'
+  sessionId?: string      // Only for session tabs
+  projectPath: string     // Single source of truth for project path
+  sessionName?: string    // Display name for session tabs
 }
 
 export interface AppState {

@@ -5,18 +5,13 @@ import { useAppStore } from '@/store/appStore'
 import { SettingsModal } from '../Settings/SettingsModal'
 
 export const TabBar: React.FC = () => {
-  const { tabs, activeTabId, setActiveTab, removeTab, addTab, sidebarCollapsed, sidebarWidth, toggleSidebar } = useAppStore()
+  const { tabs, activeTabId, setActiveTab, removeTab, sidebarCollapsed, sidebarWidth, toggleSidebar, ensureDashboardTab } = useAppStore()
   const { theme, setTheme } = useTheme()
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   
   const handleNewTab = () => {
-    // Create a new empty tab
-    const newTabId = `new-tab-${Date.now()}`
-    addTab(
-      { id: newTabId, filePath: '', projectPath: '', messageCount: 0, totalCost: 0 } as any,
-      { name: 'New Tab', path: '', sessionCount: 0 }
-    )
-    setActiveTab(newTabId)
+    // Create or switch to dashboard tab
+    ensureDashboardTab()
   }
   
   return (
@@ -51,21 +46,23 @@ export const TabBar: React.FC = () => {
             const minWidth = 120
             
             const getTabLabel = () => {
-              if (tab.id === 'dashboard') return 'Dashboard'
-              if (tab.id.startsWith('new-tab-')) return 'New Tab'
-              if (tab.id.startsWith('project-')) {
-                const projectDisplayName = tab.projectName?.split('/').pop() || tab.projectName || 'Project'
+              if (tab.type === 'dashboard') return 'Dashboard'
+              if (tab.type === 'project') {
+                const projectDisplayName = tab.projectPath.split('/').pop() || 'Project'
                 return projectDisplayName
               }
-              // For session tabs, show format: "projectName / sessionId"
-              const projectDisplayName = tab.projectName?.split('/').pop() || tab.projectName || 'Unknown'
-              return `${projectDisplayName} / ${tab.sessionName}`
+              if (tab.type === 'session') {
+                // For session tabs, show format: "projectName / sessionName"
+                // projectPath is the full path, so just get the last part
+                const projectDisplayName = tab.projectPath.split('/').pop() || 'Unknown'
+                return `${projectDisplayName} / ${tab.sessionName || 'Session'}`
+              }
+              return 'Unknown'
             }
             
             const getTabIcon = () => {
-              if (tab.id === 'dashboard') return <BarChart3 size={14} />
-              if (tab.id.startsWith('new-tab-')) return <Plus size={14} />
-              if (tab.id.startsWith('project-')) return <Folder size={14} />
+              if (tab.type === 'dashboard') return <BarChart3 size={14} />
+              if (tab.type === 'project') return <Folder size={14} />
               return null
             }
             
@@ -78,7 +75,7 @@ export const TabBar: React.FC = () => {
                   '--tab-min-width': `${minWidth}px`,
                   '--tab-max-width': `${maxWidth}px`
                 } as React.CSSProperties}
-                title={tab.id.startsWith('project-') ? tab.projectName : tab.sessionName}
+                title={tab.type === 'project' ? tab.projectPath : tab.sessionName || 'Session'}
               >
                 {getTabIcon()}
                 <span className="tab-label">

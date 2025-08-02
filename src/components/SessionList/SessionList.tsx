@@ -4,15 +4,17 @@ import { useAppStore } from '@/store/appStore'
 import { formatTime, formatDate, formatCurrency } from '@/utils/formatters'
 
 export const SessionList: React.FC = () => {
-  const { sessions, selectedSessionId, selectSession, addTab, projects, selectedProjectPath } = useAppStore()
+  const { sessions, selectedSessionId, selectSession, createSessionTab, selectedProjectPath, projects } = useAppStore()
   
   
   const handleSessionClick = async (session: any) => {
     selectSession(session.id)
     
-    const project = projects.find(p => p.path === selectedProjectPath)
-    if (project) {
-      addTab(session, project)
+    if (selectedProjectPath) {
+      // Find the project to get the resolved name
+      const project = projects.find(p => p.path === selectedProjectPath)
+      const resolvedPath = project?.name || selectedProjectPath
+      createSessionTab(session.id, resolvedPath, session.id.substring(0, 8))
     }
   }
   

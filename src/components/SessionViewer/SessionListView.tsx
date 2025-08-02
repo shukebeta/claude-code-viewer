@@ -4,8 +4,12 @@ import { useAppStore } from '@/store/appStore'
 import { formatTime, formatDate, formatCurrency } from '@/utils/formatters'
 import { SessionPreview } from './SessionPreview'
 
-export const SessionListView: React.FC = () => {
-  const { sessions, sessionsByProject, selectedSessionId, selectSession, addTab, projects, selectedProjectPath } = useAppStore()
+interface SessionListViewProps {
+  projectPath?: string
+}
+
+export const SessionListView: React.FC<SessionListViewProps> = ({ projectPath }) => {
+  const { sessions, sessionsByProject, selectedSessionId, selectSession, addTab, projects, selectedProjectPath, loadSessionsForProject } = useAppStore()
   const [hoveredSession, setHoveredSession] = useState<string | null>(null)
   const [previewPosition, setPreviewPosition] = useState({ x: 0, y: 0, width: 0, height: 0 })
   const hoverTimeoutRef = useRef<NodeJS.Timeout>()
@@ -36,7 +40,16 @@ export const SessionListView: React.FC = () => {
     }
   }, [])
   
-  const selectedProject = projects.find(p => p.path === selectedProjectPath)
+  // Load sessions when projectPath changes
+  useEffect(() => {
+    if (projectPath && !sessionsByProject[projectPath]) {
+      loadSessionsForProject(projectPath)
+    }
+  }, [projectPath, sessionsByProject, loadSessionsForProject])
+  
+  // Use projectPath prop if provided (for project tabs), otherwise use selectedProjectPath (for sidebar)
+  const currentProjectPath = projectPath || selectedProjectPath
+  const selectedProject = projects.find(p => p.name === currentProjectPath)
   
   const handleSessionClick = async (session: any) => {
     selectSession(session.id)
@@ -93,9 +106,9 @@ export const SessionListView: React.FC = () => {
     }
   }
 
-  // Use sessions from sessionsByProject if project is selected
-  const projectSessions = selectedProjectPath && sessionsByProject[selectedProjectPath] 
-    ? sessionsByProject[selectedProjectPath] 
+  // Use sessions from sessionsByProject based on current project path
+  const projectSessions = currentProjectPath && sessionsByProject[currentProjectPath] 
+    ? sessionsByProject[currentProjectPath] 
     : sessions
 
   const sessionsByDate = projectSessions.reduce((acc, session) => {
@@ -137,7 +150,7 @@ export const SessionListView: React.FC = () => {
     return getDatePriority(a) - getDatePriority(b)
   })
 
-  if (!selectedProject) {
+  if (!selectedProject || !currentProjectPath) {
     return (
       <div style={{
         display: 'flex',

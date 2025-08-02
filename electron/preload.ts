@@ -28,9 +28,25 @@ const api = {
   // Menu events
   onMenuAction: (callback: (action: string) => void) => {
     const events = ['menu-new-tab', 'menu-close-tab', 'menu-toggle-sidebar', 'menu-zoom-in', 'menu-zoom-out', 'menu-zoom-reset']
+    
+    // Create wrapped callbacks to identify them later
+    const wrappedCallbacks = new Map<string, () => void>()
+    
     events.forEach(event => {
-      ipcRenderer.on(event, () => callback(event.replace('menu-', '')))
+      const wrappedCallback = () => callback(event.replace('menu-', ''))
+      wrappedCallbacks.set(event, wrappedCallback)
+      ipcRenderer.on(event, wrappedCallback)
     })
+    
+    // Return cleanup function
+    return () => {
+      events.forEach(event => {
+        const wrappedCallback = wrappedCallbacks.get(event)
+        if (wrappedCallback) {
+          ipcRenderer.removeListener(event, wrappedCallback)
+        }
+      })
+    }
   },
   
   // Path utilities
