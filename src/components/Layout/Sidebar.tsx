@@ -89,10 +89,10 @@ export const Sidebar: React.FC = () => {
         }}>
       {/* Traffic light area + header */}
       <div style={{
-        height: '32px',
+        height: '40px',
         display: 'flex',
         alignItems: 'center',
-        paddingLeft: '16px',
+        paddingLeft: '80px', // Space for traffic lights
         paddingRight: '12px',
         borderBottom: '1px solid var(--border)',
         fontSize: '13px',
@@ -171,7 +171,7 @@ export const Sidebar: React.FC = () => {
       style={{
         position: 'fixed',
         left: `${sidebarWidth - 2}px`,
-        top: '28px', // Match the paddingTop of sidebar
+        top: 0,
         bottom: 0,
         width: '4px',
         cursor: 'col-resize',
