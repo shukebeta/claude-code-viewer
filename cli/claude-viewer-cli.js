@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 
-const { execSync, spawn } = require('child_process');
+const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+const readline = require('readline');
 
 // CLAUDECODE 환경변수 확인
 if (process.env.CLAUDECODE !== '1') {
@@ -18,92 +19,100 @@ class SessionFinder {
   }
 
   getCurrentDirectory() {
-    try {
-      return execSync('pwd', { encoding: 'utf-8' }).trim();
-    } catch (error) {
-      console.error('Failed to get current directory:', error);
-      return process.cwd();
-    }
+    // execSync('pwd') 대신 process.cwd() 사용 (보안 및 호환성 향상)
+    return process.cwd();
   }
 
   pathToProjectName(dirPath) {
-    return dirPath.replace(/\//g, '-').replace(/_/g, '-');
+    // Windows의 ''와 Unix의 '/'를 모두 처리하도록 수정
+    return dirPath.replace(/[/\\]/g, '-').replace(/_/g, '-');
   }
 
   findMatchingProject(pwd) {
-    // 현재 디렉토리부터 시작해서 상위 폴더들을 차례로 확인
     let currentPath = pwd;
-    const checkedPaths = [];
-    
-    while (currentPath && currentPath !== '/' && currentPath !== path.dirname(currentPath)) {
+    while (currentPath && currentPath !== path.dirname(currentPath)) {
       const projectName = this.pathToProjectName(currentPath);
       const projectPath = path.join(this.claudeProjectsPath, projectName);
       
-      checkedPaths.push(projectName);
-      
-      if (fs.existsSync(projectPath) && fs.statSync(projectPath).isDirectory()) {
-        // Don't log here, will log in main
-        return { projectPath, originalPath: currentPath };
+      try {
+        if (fs.existsSync(projectPath) && fs.statSync(projectPath).isDirectory()) {
+          return { projectPath, originalPath: currentPath };
+        }
+      } catch (error) {
+        // 권한 문제 등으로 statSync에서 에러가 날 수 있음
+        console.error(`Warning: Could not access ${projectPath}`, error.message);
       }
       
-      // 상위 디렉토리로 이동
       currentPath = path.dirname(currentPath);
     }
 
-    // 찾지 못한 경우 - 간단한 에러 메시지만
-    console.error(`Error: No Claude project found for current directory`);
-
+    console.error(`Error: No Claude project found for the current directory or its parents.`);
     return null;
   }
 
-  findMostRecentSession(projectDir) {
-    const jsonlFiles = fs.readdirSync(projectDir).filter(f => f.endsWith('.jsonl'));
+  async findMostRecentSession(projectDir) {
     let mostRecent = null;
     let mostRecentTime = new Date(0);
 
-    for (const jsonlFile of jsonlFiles) {
-      const filePath = path.join(projectDir, jsonlFile);
-      try {
-        const content = fs.readFileSync(filePath, 'utf-8');
-        const lines = content.split('\n').filter(line => line.trim());
+    try {
+      const files = await fs.promises.readdir(projectDir);
+      const jsonlFiles = files.filter(f => f.endsWith('.jsonl'));
 
-        // 마지막 줄부터 확인
-        for (let i = lines.length - 1; i >= 0; i--) {
-          try {
-            const data = JSON.parse(lines[i]);
-            const timestamp = new Date(data.timestamp);
+      for (const jsonlFile of jsonlFiles) {
+        const filePath = path.join(projectDir, jsonlFile);
+        try {
+          const fileStream = fs.createReadStream(filePath);
+          const rl = readline.createInterface({
+            input: fileStream,
+            crlfDelay: Infinity
+          });
 
-            if (timestamp > mostRecentTime && data.sessionId) {
+          let lastValidLine = null;
+          for await (const line of rl) {
+            if (line.trim()) {
+              try {
+                const data = JSON.parse(line);
+                if (data.sessionId && data.timestamp) {
+                  lastValidLine = data;
+                }
+              } catch (e) {
+                // 손상된 JSON 라인 무시
+              }
+            }
+          }
+
+          if (lastValidLine) {
+            const timestamp = new Date(lastValidLine.timestamp);
+            if (timestamp > mostRecentTime) {
               mostRecentTime = timestamp;
               mostRecent = {
-                sessionId: data.sessionId,
+                sessionId: lastValidLine.sessionId,
                 projectPath: projectDir,
                 jsonlFile: filePath,
-                timestamp: data.timestamp
+                timestamp: lastValidLine.timestamp
               };
-              break;
             }
-          } catch (error) {
-            continue;
           }
+        } catch (error) {
+          console.error(`Failed to read or process file ${filePath}:`, error);
         }
-      } catch (error) {
-        console.error(`Failed to read file ${filePath}:`, error);
       }
+    } catch (error) {
+      console.error(`Failed to read project directory ${projectDir}:`, error);
     }
 
     return mostRecent;
   }
 
-  findCurrentSession() {
+  async findCurrentSession() {
     const pwd = this.getCurrentDirectory();
-
     const projectInfo = this.findMatchingProject(pwd);
+    
     if (!projectInfo) {
       return null;
     }
 
-    const session = this.findMostRecentSession(projectInfo.projectPath);
+    const session = await this.findMostRecentSession(projectInfo.projectPath);
     if (session) {
       return {
         ...session,
@@ -111,64 +120,55 @@ class SessionFinder {
       };
     }
 
-    console.error('Error: No active session found');
+    console.error('Error: No active session found in project.');
     return null;
   }
 }
 
-// 메인 로직
-const finder = new SessionFinder();
-const sessionInfo = finder.findCurrentSession();
+async function main() {
+  const finder = new SessionFinder();
+  const sessionInfo = await finder.findCurrentSession();
 
-if (!sessionInfo) {
+  if (!sessionInfo) {
+    process.exit(1);
+  }
+
+  const deepLink = `claude-viewer://open?sessionId=${encodeURIComponent(sessionInfo.sessionId)}&projectPath=${encodeURIComponent(sessionInfo.projectPath)}&jsonlFile=${encodeURIComponent(sessionInfo.jsonlFile)}`;
+  
+  // 원래 프로젝트 경로를 표시 (originalPath 사용)
+  const projectDisplayName = sessionInfo.originalPath || path.basename(sessionInfo.projectPath);
+
+  console.log(`\nProject: ${projectDisplayName}`);
+  console.log(`Session: ${sessionInfo.sessionId}\n`);
+
+  const isDev = process.argv.includes('--dev') || process.env.CLAUDE_VIEWER_DEV === '1';
+  let targetUrl = deepLink;
+
+  if (isDev) {
+    const params = new URLSearchParams(new URL(deepLink).search);
+    targetUrl = `http://localhost:5173/dev-open?${params.toString()}`;
+    console.log('Running in dev mode. Opening URL in browser...');
+  }
+
+  const openCommand = process.platform === 'win32' ? 'start' : process.platform === 'darwin' ? 'open' : 'xdg-open';
+  
+  try {
+    const child = spawn(openCommand, [targetUrl], {
+      detached: true,
+      stdio: 'ignore'
+    });
+    child.on('error', (err) => {
+      console.error(`Error: Failed to launch viewer. Command "${openCommand}" failed.`);
+      console.error(`Please open this URL manually:\n${targetUrl}`);
+    });
+    child.unref();
+  } catch (error) {
+    console.error(`Error: Failed to execute command "${openCommand}".`);
+    console.error(`Please open this URL manually:\n${targetUrl}`);
+  }
+}
+
+main().catch(err => {
+  console.error("An unexpected error occurred:", err);
   process.exit(1);
-}
-
-// Deep link URL 생성
-const deepLink = `claude-viewer://open?sessionId=${encodeURIComponent(sessionInfo.sessionId)}&projectPath=${encodeURIComponent(sessionInfo.projectPath)}&jsonlFile=${encodeURIComponent(sessionInfo.jsonlFile)}`;
-
-// 프로젝트 이름 추출 (경로에서 변환된 실제 프로젝트 폴더명)
-const projectName = path.basename(sessionInfo.projectPath);
-
-// 깔끔한 출력
-console.log(`\nProject: ${projectName}`);
-console.log(`Session: ${sessionInfo.sessionId}\n`);
-
-// 개발 모드 확인 (환경변수 또는 --dev 플래그)
-const isDev = process.argv.includes('--dev') || process.env.CLAUDE_VIEWER_DEV === '1';
-
-if (isDev) {
-  // 개발 서버에 HTTP 요청으로 세션 정보 전달
-  const http = require('http');
-  const url = new URL(deepLink);
-  const params = new URLSearchParams(url.search);
-  
-  const devUrl = `http://localhost:5173/dev-open?${params.toString()}`;
-  
-  // 브라우저로 개발 서버 URL 열기
-  const openCommand = process.platform === 'darwin' ? 'open' : 
-                     process.platform === 'win32' ? 'start' : 'xdg-open';
-  
-  const child = spawn(openCommand, [devUrl], {
-    detached: true,
-    stdio: 'ignore'
-  });
-  
-  child.unref();
-} else {
-  // macOS에서 deep link 열기
-  const openCommand = process.platform === 'darwin' ? 'open' : 
-                     process.platform === 'win32' ? 'start' : 'xdg-open';
-  
-  const child = spawn(openCommand, [deepLink], {
-    detached: true,
-    stdio: 'ignore'
-  });
-  
-  child.unref();
-}
-
-// 앱이 열릴 시간을 주고 종료
-setTimeout(() => {
-  process.exit(0);
-}, 1000);
+});

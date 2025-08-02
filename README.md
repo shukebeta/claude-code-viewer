@@ -2,6 +2,29 @@
 
 Claude Code Viewer is a desktop application for viewing and analyzing Claude Code CLI session logs. It provides a graphical interface for session transcripts, rendering conversations with markdown, syntax-highlighted code blocks, and formatted tool outputs.
 
+## ✨ Features
+
+### Project & Session Management
+- **Auto-Discovery**: Automatically finds all Claude projects in `~/.claude/projects/`.
+- **Smart Sorting**: Sessions are sorted by modification time and grouped by date.
+- **Session Preview**: Hover over a session to preview its content (can be disabled in settings).
+- **Real-Time Updates**: Sessions refresh automatically as you work with the Claude CLI.
+- **Recent Sessions**: A dedicated panel provides quick access to your most recent work.
+- **Session Status**: Visual indicators for active, completed, and in-progress sessions.
+
+### Advanced Message Rendering
+- **Syntax Highlighting**: Code blocks are rendered with language detection.
+- **Custom Tool Displays**: Specific rendering for file operations, bash commands, search results, and more.
+- **Smart Grouping**: Consecutive tool uses are grouped into a single, collapsible block.
+- **Collapsible Content**: Long messages and tool outputs can be collapsed to save space.
+
+### Navigation & Interface
+- **Multi-Tab System**: Open multiple sessions across different projects.
+- **Timeline Minimap**: A visual overview of the session with click-to-jump navigation.
+- **Keyboard Shortcuts**: `Cmd/Ctrl+W` (close tab), `Cmd/Ctrl+B` (toggle sidebar), `Cmd/Ctrl+,` (settings).
+- **Responsive Design**: The interface adapts to different window sizes.
+- **Dark/Light Themes**: Matches Claude's design system.
+
 ## 🚀 Installation
 
 ### Option 1: Homebrew (macOS - Recommended)
@@ -56,29 +79,6 @@ claude-viewer
 1.  Launch Claude Code Viewer.
 2.  Select a project from the auto-discovered list in the sidebar.
 3.  Click any session to open it in a new tab.
-
-## ✨ Features
-
-### Project & Session Management
-- **Auto-Discovery**: Automatically finds all Claude projects in `~/.claude/projects/`.
-- **Smart Sorting**: Sessions are sorted by modification time and grouped by date.
-- **Session Preview**: Hover over a session to preview its content (can be disabled in settings).
-- **Real-Time Updates**: Sessions refresh automatically as you work with the Claude CLI.
-- **Recent Sessions**: A dedicated panel provides quick access to your most recent work.
-- **Session Status**: Visual indicators for active, completed, and in-progress sessions.
-
-### Advanced Message Rendering
-- **Syntax Highlighting**: Code blocks are rendered with language detection.
-- **Custom Tool Displays**: Specific rendering for file operations, bash commands, search results, and more.
-- **Smart Grouping**: Consecutive tool uses are grouped into a single, collapsible block.
-- **Collapsible Content**: Long messages and tool outputs can be collapsed to save space.
-
-### Navigation & Interface
-- **Multi-Tab System**: Open multiple sessions across different projects.
-- **Timeline Minimap**: A visual overview of the session with click-to-jump navigation.
-- **Keyboard Shortcuts**: `Cmd/Ctrl+W` (close tab), `Cmd/Ctrl+B` (toggle sidebar), `Cmd/Ctrl+,` (settings).
-- **Responsive Design**: The interface adapts to different window sizes.
-- **Dark/Light Themes**: Matches Claude's design system.
 
 ## 🛠️ Development
 

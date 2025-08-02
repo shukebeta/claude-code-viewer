@@ -20,6 +20,11 @@ export function getProjectNameFromPath(projectPath: string): string {
  * This handles both full paths and project names
  */
 export function isMatchingProject(projectPath: string, dirPath: string): boolean {
+  // If both paths contain .claude/projects, they're already project paths
+  if (projectPath.includes('.claude/projects') && dirPath.includes('.claude/projects')) {
+    return projectPath === dirPath
+  }
+  
   // If projectPath is already a full path to .claude/projects
   if (projectPath.includes('.claude/projects')) {
     const projectName = getProjectNameFromPath(projectPath)
