@@ -1,106 +1,89 @@
 # 🔍 Claude Code Viewer
 
-Claude Code Viewer brings your Claude Code sessions to life in a clear, structured web-based interface.
-
-- Beautifully renders markdown, code, and long outputs for easier reading.
-- Hover to preview sessions and navigate instantly.
-- Compact, collapsible chat flows for streamlined context.
-- Seamlessly switch from viewer to Claude CLI for direct edits.
-
-The best bridge between your terminal and a smarter, clearer session workflow.
-
-## ✨ Features
-
-### 📁 Project & Session Management
-- **Auto-discovery** - Automatically finds all Claude projects from `~/.claude/projects/`
-- **Smart sorting** - Sessions sorted by modification time, grouped by date (Today, Yesterday, etc.)
-- **Session preview** - Hover to preview conversation content (can be disabled in settings)
-- **Real-time updates** - Sessions refresh automatically as you work with Claude
-
-### 💬 Advanced Message Rendering
-- **Syntax highlighting** - Beautiful code blocks with language detection
-- **Tool-specific displays** - Custom rendering for different tool types:
-  - 📝 File operations (Read, Write, Edit)
-  - 🔧 Bash commands with styled input/output/error
-  - 🔍 Search results (Grep, Glob)
-  - 🌐 Web operations
-  - ✅ Todo management
-- **Smart grouping** - Consecutive tool uses are grouped together
-- **Collapsible content** - Long messages and tool outputs can be collapsed
-
-### 🎯 Navigation & Interface
-- **Multi-tab system** - Open multiple sessions across different projects
-- **Timeline minimap** - Visual overview with click-to-jump navigation
-- **Keyboard shortcuts**:
-  - `Ctrl/Cmd + W` - Close current tab
-  - `Ctrl/Cmd + B` - Toggle sidebar
-- **Responsive design** - Adapts to different window sizes
-- **Dark/Light themes** - Matches Claude's design system
+Claude Code Viewer is a desktop application for viewing and analyzing Claude Code CLI session logs. It provides a graphical interface for session transcripts, rendering conversations with markdown, syntax-highlighted code blocks, and formatted tool outputs.
 
 ## 🚀 Installation
 
-### Prerequisites
-- Node.js 18+ 
-- npm or yarn
-- macOS, Windows, or Linux
+### Option 1: Homebrew (macOS - Recommended)
+```bash
+brew tap esc5221/tap
+brew install claude-code-viewer
+```
 
-### Build & Install
+### Option 2: Direct Download
+Download the latest release for your operating system from the [GitHub Releases](https://github.com/esc5221/claude-viewer/releases) page.
+
+### Option 3: Build from Source
+Requires Node.js 18+.
 
 ```bash
-# Clone and install dependencies
-git clone https://github.com/yourusername/claude-code-viewer.git
+# Clone the repository and install dependencies
+git clone https://github.com/esc5221/claude-viewer.git
 cd claude-code-viewer
 npm install
 
-# Build the application
-npm run build
-
-# Package for your platform
-npm run dist:mac    # macOS (creates .dmg)
+# Build and package for your platform
+npm run dist:mac    # macOS (.dmg)
+npm run dist:win    # Windows (.exe)
+npm run dist:linux  # Linux (.AppImage)
 ```
 
-### 🔗 Claude CLI Integration
+## 🔗 Claude CLI Integration
 
-Enable the `claude-viewer` command in Claude CLI:
+To open sessions directly from your terminal, install the `claude-viewer` helper command.
 
 ```bash
 # Run the installation script
 ./install-cli.sh
 
-# Or manually install
+# Or manually link the CLI
 cd cli
 npm install
 npm link
 ```
+Once installed, you can use `claude-viewer` inside a Claude session to instantly open it in the app.
 
 ## 💻 Usage
 
-### From Claude CLI
-When working in a Claude session (`CLAUDECODE=1`):
-
+### From the Claude CLI
+While in a Claude session (`CLAUDECODE=1` is set):
 ```bash
-# Opens current session instantly
+# Opens the current session in the viewer
 claude-viewer
-
-# Output:
-# Project: /Users/you/your-project
-# Session: abc123def456
 ```
 
-### Standalone App
-1. Launch Claude Code Viewer
-2. Select a project from the sidebar
-3. Click any session to view
-4. Use tabs to open multiple sessions
+### As a Standalone App
+1.  Launch Claude Code Viewer.
+2.  Select a project from the auto-discovered list in the sidebar.
+3.  Click any session to open it in a new tab.
 
-### ⚙️ Settings
-- **Custom Resume Command** - Configure how sessions open in Claude CLI
-- **Session Preview** - Toggle hover previews on/off
+## ✨ Features
+
+### Project & Session Management
+- **Auto-Discovery**: Automatically finds all Claude projects in `~/.claude/projects/`.
+- **Smart Sorting**: Sessions are sorted by modification time and grouped by date.
+- **Session Preview**: Hover over a session to preview its content (can be disabled in settings).
+- **Real-Time Updates**: Sessions refresh automatically as you work with the Claude CLI.
+- **Recent Sessions**: A dedicated panel provides quick access to your most recent work.
+- **Session Status**: Visual indicators for active, completed, and in-progress sessions.
+
+### Advanced Message Rendering
+- **Syntax Highlighting**: Code blocks are rendered with language detection.
+- **Custom Tool Displays**: Specific rendering for file operations, bash commands, search results, and more.
+- **Smart Grouping**: Consecutive tool uses are grouped into a single, collapsible block.
+- **Collapsible Content**: Long messages and tool outputs can be collapsed to save space.
+
+### Navigation & Interface
+- **Multi-Tab System**: Open multiple sessions across different projects.
+- **Timeline Minimap**: A visual overview of the session with click-to-jump navigation.
+- **Keyboard Shortcuts**: `Cmd/Ctrl+W` (close tab), `Cmd/Ctrl+B` (toggle sidebar), `Cmd/Ctrl+,` (settings).
+- **Responsive Design**: The interface adapts to different window sizes.
+- **Dark/Light Themes**: Matches Claude's design system.
 
 ## 🛠️ Development
 
 ```bash
-# Development with hot reload
+# Run development server with hot reload
 npm run dev
 
 # Type checking
@@ -113,35 +96,18 @@ npm run build
 npm test
 ```
 
-### Project Structure
-```
-claude-code-viewer/
-├── electron/          # Main process
-├── src/              # Renderer process (React app)
-│   ├── components/   # UI components
-│   ├── store/        # Zustand state management
-│   └── utils/        # Helper functions
-├── cli/              # CLI integration
-└── release/          # Built applications
-```
-
 ## 🔧 Tech Stack
 
-- **Electron** - Cross-platform desktop framework
-- **React 18** - UI library with hooks
-- **TypeScript** - Type safety and better DX
-- **Vite** - Lightning fast build tool
-- **Tailwind CSS v4** - Utility-first styling
-- **Zustand** - Lightweight state management
+- **Framework**: Electron
+- **UI**: React 18, Tailwind CSS v4
+- **Language**: TypeScript
+- **Build Tool**: Vite
+- **State Management**: Zustand
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome. Please feel free to submit a Pull Request.
 
 ## 📄 License
 
-MIT License - see [LICENSE](LICENSE) file for details
-
----
-
-Made with ❤️ for the Claude community
+MIT License.
