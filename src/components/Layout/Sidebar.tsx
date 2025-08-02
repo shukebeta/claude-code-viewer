@@ -85,14 +85,15 @@ export const Sidebar: React.FC = () => {
           flexDirection: 'column',
           zIndex: 10,
           background: 'var(--background)',
-          borderRight: '1px solid var(--border)'
+          borderRight: '1px solid var(--border)',
+          paddingTop: '28px' // Safe area for macOS traffic lights
         }}>
       {/* Traffic light area + header */}
       <div style={{
-        height: '40px',
+        height: '32px',
         display: 'flex',
         alignItems: 'center',
-        paddingLeft: '80px', // Space for traffic lights
+        paddingLeft: '16px',
         paddingRight: '12px',
         borderBottom: '1px solid var(--border)',
         fontSize: '13px',

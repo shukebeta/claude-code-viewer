@@ -27,11 +27,25 @@ export const TabBar: React.FC = () => {
         height: '40px',
         display: 'flex',
         alignItems: 'center',
-        paddingLeft: sidebarCollapsed ? '120px' : '12px',
+        paddingLeft: '12px',
         paddingRight: '12px',
         fontSize: '13px',
         WebkitAppRegion: 'drag'
       } as React.CSSProperties}>
+        {sidebarCollapsed && (
+          <button
+            className="btn-icon"
+            style={{ 
+              padding: '6px', 
+              marginRight: '8px',
+              WebkitAppRegion: 'no-drag'
+            } as React.CSSProperties}
+            onClick={toggleSidebar}
+            title="Show sidebar (Cmd+B)"
+          >
+            <PanelLeft size={16} />
+          </button>
+        )}
         <div style={{
           flex: 1,
           display: 'flex',
@@ -94,16 +108,6 @@ export const TabBar: React.FC = () => {
               </button>
             )
           })}
-          {sidebarCollapsed && (
-            <button
-              className="btn-icon"
-              style={{ padding: '6px', marginRight: '4px' }}
-              onClick={toggleSidebar}
-              title="Show sidebar (Cmd+B)"
-            >
-              <PanelLeft size={16} />
-            </button>
-          )}
           {tabs.length < 10 && (
             <button
               className="btn-icon"

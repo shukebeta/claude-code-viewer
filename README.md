@@ -51,27 +51,14 @@ npm run dist:win    # Windows (.exe)
 npm run dist:linux  # Linux (.AppImage)
 ```
 
-## 🔗 Claude CLI Integration
-
-To open sessions directly from your terminal, install the `claude-viewer` helper command.
-
-```bash
-# Run the installation script
-./install-cli.sh
-
-# Or manually link the CLI
-cd cli
-npm install
-npm link
-```
-Once installed, you can use `claude-viewer` inside a Claude session to instantly open it in the app.
-
 ## 💻 Usage
 
 ### From the Claude CLI
 While in a Claude session (`CLAUDECODE=1` is set):
 ```bash
 # Opens the current session in the viewer
+ccviewer
+# or
 claude-viewer
 ```
 
