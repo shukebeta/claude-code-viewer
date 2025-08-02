@@ -15,10 +15,10 @@ let mainWindow: BrowserWindow | null = null
 let deepLinkUrl: string | null = null
 const windows = new Set<BrowserWindow>()
 
-// Deep link protocol 설정
+// Deep link protocol setup
 const PROTOCOL_PREFIX = 'claude-viewer'
 
-// Deep link URL 파싱
+// Parse deep link URL
 function parseDeepLink(url: string): { sessionId?: string; projectPath?: string; jsonlFile?: string } {
   try {
     const urlObj = new URL(url)
@@ -209,14 +209,14 @@ function createWindow(deepLink?: string): void {
   window.on('ready-to-show', () => {
     window.show()
     
-    // 개발 모드에서는 개발자 도구 자동 열기
+    // Automatically open developer tools in development mode
     if (is.dev) {
       window.webContents.openDevTools()
     }
   })
   
   window.on('focus', () => {
-    // 창이 포커스될 때 로컬 단축키 등록
+    // Register local shortcuts when window is focused
     globalShortcut.register('CommandOrControl+-', () => {
       const currentZoom = window.webContents.getZoomFactor()
       window.webContents.setZoomFactor(Math.max(0.5, currentZoom - 0.1))
@@ -233,7 +233,7 @@ function createWindow(deepLink?: string): void {
   })
   
   window.on('blur', () => {
-    // 창이 포커스를 잃으면 단축키 해제
+    // Unregister shortcuts when window loses focus
     globalShortcut.unregister('CommandOrControl+-')
     globalShortcut.unregister('CommandOrControl+=')
     globalShortcut.unregister('CommandOrControl+0')
@@ -261,7 +261,7 @@ function createWindow(deepLink?: string): void {
     mainWindow = window
   }
 
-  // Deep link가 있으면 처리
+  // Handle deep link if present
   if (deepLink || deepLinkUrl) {
     handleDeepLink(deepLink || deepLinkUrl!, window)
     if (deepLinkUrl) deepLinkUrl = null
@@ -270,7 +270,7 @@ function createWindow(deepLink?: string): void {
   return window
 }
 
-// Deep link 처리 함수
+// Deep link handler function
 function handleDeepLink(url: string, targetWindow?: BrowserWindow) {
   const params = parseDeepLink(url)
   console.log('Handling deep link:', params)
@@ -284,7 +284,7 @@ function handleDeepLink(url: string, targetWindow?: BrowserWindow) {
   }
   
   if (params.sessionId || params.projectPath) {
-    // 창을 포커스하고 보이게 하기
+    // Focus and show window
     try {
       if (window.isDestroyed()) {
         console.log('Window is destroyed, cannot handle deep link')
@@ -295,7 +295,7 @@ function handleDeepLink(url: string, targetWindow?: BrowserWindow) {
       window.show()
       window.focus()
       
-      // webContents가 준비될 때까지 기다린 후 전송
+      // Wait for webContents to be ready before sending
       if (window.webContents.isLoading()) {
         console.log('Window is still loading, waiting...')
         window.webContents.once('did-finish-load', () => {
@@ -303,7 +303,7 @@ function handleDeepLink(url: string, targetWindow?: BrowserWindow) {
           if (!window.isDestroyed()) {
             window.webContents.send('deep-link-open', params)
             
-            // 디버깅: 렌더러 프로세스에서 콘솔 로그 실행
+            // Debug: Execute console log in renderer process
             window.webContents.executeJavaScript(`
               console.log('[Renderer] Received deep-link-open event');
               console.log('[Renderer] Window.api available:', !!window.api);
@@ -315,7 +315,7 @@ function handleDeepLink(url: string, targetWindow?: BrowserWindow) {
         console.log('Window is ready, sending deep link to renderer:', params)
         window.webContents.send('deep-link-open', params)
         
-        // 디버깅: 렌더러 프로세스에서 콘솔 로그 실행
+        // Debug: Execute console log in renderer process
         window.webContents.executeJavaScript(`
           console.log('[Renderer] Received deep-link-open event');
           console.log('[Renderer] Window.api available:', !!window.api);
@@ -328,7 +328,7 @@ function handleDeepLink(url: string, targetWindow?: BrowserWindow) {
   }
 }
 
-// macOS를 위한 protocol 등록
+// Register protocol for macOS
 if (process.defaultApp) {
   if (process.argv.length >= 2) {
     app.setAsDefaultProtocolClient(PROTOCOL_PREFIX, process.execPath, [process.argv[1]])
@@ -337,7 +337,7 @@ if (process.defaultApp) {
   app.setAsDefaultProtocolClient(PROTOCOL_PREFIX)
 }
 
-// Windows/Linux deep link 처리
+// Handle deep link for Windows/Linux
 const gotTheLock = app.requestSingleInstanceLock()
 
 console.log('[Main] Got the lock:', gotTheLock)
@@ -348,21 +348,21 @@ if (!gotTheLock) {
 } else {
   console.log('[Main] This is the first instance')
   app.on('second-instance', (_, commandLine) => {
-    // 이미 실행 중인 인스턴스가 있을 때
-    // Deep link URL 찾기
+    // When there's already a running instance
+    // Find deep link URL
     const url = commandLine.find((arg) => arg.startsWith(`${PROTOCOL_PREFIX}://`))
     if (url) {
-      // Deep link가 있으면 새 창에서 열기
+      // If deep link exists, open in new window
       createWindow(url)
     } else if (mainWindow) {
-      // Deep link가 없으면 기존 창 활성화
+      // If no deep link, activate existing window
       if (mainWindow.isMinimized()) mainWindow.restore()
       mainWindow.focus()
     }
   })
 }
 
-// macOS deep link 처리
+// Handle macOS deep link
 app.on('open-url', (event, url) => {
   event.preventDefault()
   if (app.isReady()) {
@@ -376,10 +376,10 @@ app.whenReady().then(() => {
   console.log('[Main] App is ready!')
   electronApp.setAppUserModelId('com.mainpy.claude-code-viewer')
 
-  // 메뉴 생성
+  // Create menu
   createMenu()
 
-  // CLI 설치 시도 (macOS만)
+  // Try to install CLI (macOS only)
   if (process.platform === 'darwin' && app.isPackaged) {
     installCLI()
   }

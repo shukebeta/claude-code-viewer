@@ -36,7 +36,7 @@ function App(): JSX.Element {
       return
     }
     
-    // 약간의 지연을 주어 앱이 완전히 로드되도록 함
+    // Add a slight delay to ensure the app is fully loaded
     setTimeout(async () => {
       try {
         // Load projects first if not loaded
@@ -91,7 +91,7 @@ function App(): JSX.Element {
       } catch (error) {
         console.error('[App] Error handling deep link:', error)
       }
-    }, 500) // 500ms 지연
+    }, 500) // 500ms delay
   }
   
   const handleDevModeParams = () => {

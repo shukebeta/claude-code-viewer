@@ -19,7 +19,7 @@ export class SessionFinder {
   }
 
   /**
-   * 현재 작업 디렉토리 가져오기
+   * Get current working directory
    */
   getCurrentDirectory(): string {
     try {
@@ -31,7 +31,7 @@ export class SessionFinder {
   }
 
   /**
-   * 현재 경로에 맞는 프로젝트 폴더 찾기
+   * Find project folder matching current path
    */
   findMatchingProject(pwd: string): string | null {
     const projectName = pathToProjectName(pwd)
@@ -41,7 +41,7 @@ export class SessionFinder {
       return projectPath
     }
 
-    // 디버깅용 - 사용 가능한 프로젝트 출력
+    // Debug - output available projects
     console.log(`Looking for project: ${pathToProjectName(pwd)}`)
     console.log('Available projects:')
     try {
@@ -59,7 +59,7 @@ export class SessionFinder {
   }
 
   /**
-   * 특정 키워드를 포함한 최근 세션 찾기
+   * Find recent session containing specific keyword
    */
   findRecentSessionWithKeyword(
     projectDir: string,
@@ -75,7 +75,7 @@ export class SessionFinder {
         const content = fs.readFileSync(filePath, 'utf-8')
         const lines = content.split('\n').filter(line => line.trim())
 
-        // 파일을 역순으로 읽어서 최근 메시지부터 확인
+        // Read file in reverse order to check recent messages first
         for (let i = lines.length - 1; i >= 0; i--) {
           try {
             const data = JSON.parse(lines[i])
@@ -103,7 +103,7 @@ export class SessionFinder {
               }
             }
           } catch (error) {
-            // JSON 파싱 에러 무시
+            // Ignore JSON parsing errors
             continue
           }
         }
@@ -116,7 +116,7 @@ export class SessionFinder {
   }
 
   /**
-   * 가장 최근 활성 세션 찾기 (키워드 없이)
+   * Find most recent active session (without keyword)
    */
   findMostRecentSession(projectDir: string): SessionInfo | null {
     const jsonlFiles = fs.readdirSync(projectDir).filter(f => f.endsWith('.jsonl'))
@@ -129,7 +129,7 @@ export class SessionFinder {
         const content = fs.readFileSync(filePath, 'utf-8')
         const lines = content.split('\n').filter(line => line.trim())
 
-        // 마지막 줄부터 확인
+        // Check from last line
         for (let i = lines.length - 1; i >= 0; i--) {
           try {
             const data = JSON.parse(lines[i])
@@ -143,7 +143,7 @@ export class SessionFinder {
                 jsonlFile: filePath,
                 timestamp: data.timestamp
               }
-              break // 이 파일에서는 더 이상 확인할 필요 없음
+              break // No need to check further in this file
             }
           } catch (error) {
             continue
@@ -158,7 +158,7 @@ export class SessionFinder {
   }
 
   /**
-   * 현재 디렉토리의 Claude 세션 찾기
+   * Find Claude session in current directory
    */
   findCurrentSession(options: { keyword?: string; seconds?: number } = {}): SessionInfo | null {
     const pwd = this.getCurrentDirectory()
@@ -172,7 +172,7 @@ export class SessionFinder {
 
     console.log(`Found project: ${projectDir}`)
 
-    // 키워드가 있으면 키워드로 검색, 없으면 가장 최근 세션
+    // Search by keyword if provided, otherwise find most recent session
     if (options.keyword) {
       const session = this.findRecentSessionWithKeyword(
         projectDir,
@@ -185,7 +185,7 @@ export class SessionFinder {
       }
     }
 
-    // 키워드로 못 찾았거나 키워드가 없으면 가장 최근 세션
+    // If not found by keyword or no keyword provided, find most recent session
     const session = this.findMostRecentSession(projectDir)
     if (session) {
       console.log(`Found most recent session: ${session.sessionId}`)

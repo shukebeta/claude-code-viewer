@@ -43,7 +43,7 @@ export interface AppState {
   projects: Project[]
   selectedProjectPath: string | null
   sessions: Session[]
-  sessionsByProject: Record<string, Session[]>  // 프로젝트별 세션 저장
+  sessionsByProject: Record<string, Session[]>  // Sessions stored by project
   selectedSessionId: string | null
   tabs: Tab[]
   activeTabId: string | null

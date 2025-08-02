@@ -6,25 +6,25 @@ const fs = require('fs');
 const os = require('os');
 const readline = require('readline');
 
-// CLAUDECODE 환경변수 확인
+// Check CLAUDECODE environment variable
 if (process.env.CLAUDECODE !== '1') {
   console.error('Error: This command must be run inside Claude CLI (CLAUDECODE=1)');
   process.exit(1);
 }
 
-// 세션 찾기 로직
+// Session finder logic
 class SessionFinder {
   constructor() {
     this.claudeProjectsPath = path.join(os.homedir(), '.claude', 'projects');
   }
 
   getCurrentDirectory() {
-    // execSync('pwd') 대신 process.cwd() 사용 (보안 및 호환성 향상)
+    // Use process.cwd() instead of execSync('pwd') for better security and compatibility
     return process.cwd();
   }
 
   pathToProjectName(dirPath) {
-    // Windows의 ''와 Unix의 '/'를 모두 처리하도록 수정
+    // Handle both Windows '\' and Unix '/' path separators
     return dirPath.replace(/[/\\]/g, '-').replace(/_/g, '-');
   }
 
@@ -39,7 +39,7 @@ class SessionFinder {
           return { projectPath, originalPath: currentPath };
         }
       } catch (error) {
-        // 권한 문제 등으로 statSync에서 에러가 날 수 있음
+        // statSync may fail due to permission issues
         console.error(`Warning: Could not access ${projectPath}`, error.message);
       }
       
@@ -76,7 +76,7 @@ class SessionFinder {
                   lastValidLine = data;
                 }
               } catch (e) {
-                // 손상된 JSON 라인 무시
+                // Ignore corrupted JSON lines
               }
             }
           }
@@ -135,7 +135,7 @@ async function main() {
 
   const deepLink = `claude-viewer://open?sessionId=${encodeURIComponent(sessionInfo.sessionId)}&projectPath=${encodeURIComponent(sessionInfo.projectPath)}&jsonlFile=${encodeURIComponent(sessionInfo.jsonlFile)}`;
   
-  // 원래 프로젝트 경로를 표시 (originalPath 사용)
+  // Display original project path (using originalPath)
   const projectDisplayName = sessionInfo.originalPath || path.basename(sessionInfo.projectPath);
 
   console.log(`\nProject: ${projectDisplayName}`);
