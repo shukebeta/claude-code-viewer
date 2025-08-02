@@ -45,7 +45,7 @@ Think of it as your session's reading glasses - everything becomes clearer when 
 ### Option 1: Homebrew (macOS - Recommended)
 ```bash
 brew tap esc5221/tap
-brew install claude-code-viewer
+brew install --cask claude-code-viewer
 ```
 
 ### Option 2: Direct Download
