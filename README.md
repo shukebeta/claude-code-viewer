@@ -2,6 +2,8 @@
 
 Claude Code Viewer is a desktop application for viewing and analyzing Claude Code CLI session logs. It provides a graphical interface for session transcripts, rendering conversations with markdown, syntax-highlighted code blocks, and formatted tool outputs.
 
+https://github.com/user-attachments/assets/0cd43984-9a2c-4cf7-b3f2-2abc2ebc6d2c
+
 ## 💡 Why Claude Code Viewer?
 
 Working with Claude in the terminal is powerful, but long sessions can become hard to navigate. Claude Code Viewer bridges this gap by providing a visual interface that makes your sessions readable and manageable.
