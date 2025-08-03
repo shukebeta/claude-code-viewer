@@ -32,12 +32,16 @@ export const TabBar: React.FC = () => {
         fontSize: '13px',
         WebkitAppRegion: 'drag'
       } as React.CSSProperties}>
+        {/* Spacer for traffic lights on macOS - only when sidebar is collapsed */}
+        {sidebarCollapsed && (
+          <div style={{ width: '68px', flexShrink: 0 }} />
+        )}
+        
         {sidebarCollapsed && (
           <button
             className="btn-icon"
             style={{ 
               padding: '6px', 
-              marginLeft: '68px',
               marginRight: '8px',
               WebkitAppRegion: 'no-drag'
             } as React.CSSProperties}
@@ -48,7 +52,6 @@ export const TabBar: React.FC = () => {
           </button>
         )}
         <div style={{
-          flex: 1,
           display: 'flex',
           alignItems: 'center',
           gap: '2px',
@@ -121,11 +124,13 @@ export const TabBar: React.FC = () => {
           )}
         </div>
         
+        {/* Spacer for draggable area */}
+        <div style={{ flex: 1 }} />
+        
         <div style={{
           display: 'flex',
           alignItems: 'center',
           gap: '8px',
-          marginLeft: '16px',
           WebkitAppRegion: 'no-drag'
         } as React.CSSProperties}>
           <button

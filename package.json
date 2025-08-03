@@ -1,6 +1,6 @@
 {
   "name": "claude-code-viewer",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "main": "dist/main/main.js",
   "bin": {
     "ccviewer": "./cli/claude-viewer-cli.js"
