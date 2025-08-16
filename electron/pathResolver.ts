@@ -7,12 +7,12 @@ const pathCache = new Map<string, string>()
 /**
  * Restore Claude project folder name to actual file system path
  * Example: -Users-lullu-mainpy-claude-code-web → /Users/lullu/mainpy/claude-code-web
- * Windows: -C-Users-username-project → C:\Users\username\project
+ * Windows: C--Users-username-project → C:\Users\username\project
  * 
  * Algorithm:
- * 1. Start by replacing the first '-' with path separator
- * 2. For each '-', check if directory exists when replaced with path separator
- * 3. If exists, continue; otherwise keep '-' as is
+ * - Windows: Extract drive letter and replace '--' with '\' 
+ * - Unix: Start by replacing the first '-' with path separator, then for each '-',
+ *   check if directory exists when replaced with path separator
  */
 export function resolveProjectPath(projectName: string): string {
   // Check cache
@@ -27,17 +27,36 @@ export function resolveProjectPath(projectName: string): string {
     return result
   }
 
-  // First '-' is always path separator
-  if (!projectName.startsWith('-')) {
+  // Check if this is a Windows project folder (starts with drive letter)
+  const isWindowsProjectFolder = /^[A-Za-z]--/.test(projectName)
+  
+  // Unix project folders start with '-', Windows folders start with drive letter
+  if (!projectName.startsWith('-') && !isWindowsProjectFolder) {
     // Already in path format
     pathCache.set(projectName, projectName)
     return projectName
   }
 
+  // Handle Windows project folders (e.g., "C--Users-username-project")
+  if (isWindowsProjectFolder) {
+    // Extract drive letter and remaining path
+    const driveMatch = projectName.match(/^([A-Za-z])--(.+)$/)
+    if (driveMatch) {
+      const [, driveLetter, pathPart] = driveMatch
+      // Replace -- with :\ first, then replace remaining - with \
+      // This may have false positives but gives more readable paths
+      let windowsPath = `${driveLetter.toUpperCase()}--${pathPart}`
+      windowsPath = windowsPath.replace(/--/, ':\\').replace(/-/g, '\\')
+      const result = windowsPath
+      pathCache.set(projectName, result)
+      return result
+    }
+  }
+
   // Array to construct result path
   const parts: string[] = []
   
-  // Remove first '-' as it represents root
+  // Remove first '-' as it represents root (Unix paths only)
   let remaining = projectName.substring(1)
   
   // Handle empty directory names (starting with --)
