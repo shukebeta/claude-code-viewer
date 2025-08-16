@@ -26,7 +26,13 @@ export const ProjectList: React.FC<ProjectListProps> = ({ searchQuery = '' }) =>
       // Create a project tab to show session list
       createProjectTab(project.name) // Use real path for tab
     } catch (error) {
-      console.error('Error loading sessions:', error)
+      console.error('[ProjectList] Failed to load sessions for project:', project.name)
+      console.error('[ProjectList] Error:', error.message)
+      console.error('[ProjectList] Project path:', project.path)
+      
+      // Still set empty sessions to prevent loading state issues
+      setSessions([])
+      setSessionsForProject(project.name, [])
     }
   }
   
@@ -42,8 +48,8 @@ export const ProjectList: React.FC<ProjectListProps> = ({ searchQuery = '' }) =>
             borderRadius: '8px',
             cursor: 'pointer',
             transition: 'background-color 0.2s ease',
-            background: selectedProjectPath === project.path ? 'var(--secondary)' : 'transparent',
-            border: selectedProjectPath === project.path ? '1px solid var(--border)' : '1px solid transparent'
+            background: selectedProjectPath === project.name ? 'var(--secondary)' : 'transparent',
+            border: selectedProjectPath === project.name ? '1px solid var(--border)' : '1px solid transparent'
           }}
           className="project-item"
         >

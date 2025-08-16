@@ -1,5 +1,5 @@
 import { existsSync } from 'fs'
-import { join } from 'path'
+import { join, resolve, sep } from 'path'
 
 // Map for caching
 const pathCache = new Map<string, string>()
@@ -7,10 +7,11 @@ const pathCache = new Map<string, string>()
 /**
  * Restore Claude project folder name to actual file system path
  * Example: -Users-lullu-mainpy-claude-code-web → /Users/lullu/mainpy/claude-code-web
+ * Windows: -C-Users-username-project → C:\Users\username\project
  * 
  * Algorithm:
- * 1. Start by replacing the first '-' with '/'
- * 2. For each '-', check if directory exists when replaced with '/'
+ * 1. Start by replacing the first '-' with path separator
+ * 2. For each '-', check if directory exists when replaced with path separator
  * 3. If exists, continue; otherwise keep '-' as is
  */
 export function resolveProjectPath(projectName: string): string {
@@ -21,12 +22,12 @@ export function resolveProjectPath(projectName: string): string {
 
   // Empty string or only '-' case
   if (!projectName || projectName === '-') {
-    const result = '/'
+    const result = resolve(sep)
     pathCache.set(projectName, result)
     return result
   }
 
-  // First '-' is always '/'
+  // First '-' is always path separator
   if (!projectName.startsWith('-')) {
     // Already in path format
     pathCache.set(projectName, projectName)
@@ -47,7 +48,7 @@ export function resolveProjectPath(projectName: string): string {
   }
   
   // Path constructed so far
-  let currentPath = '/'
+  let currentPath = ''
   
   while (remaining.length > 0) {
     // Find next '-' position
@@ -56,23 +57,27 @@ export function resolveProjectPath(projectName: string): string {
     if (nextDashIndex === -1) {
       // If no more '-', treat the rest as one part
       parts.push(remaining)
-      currentPath = join(currentPath, remaining)
+      currentPath = currentPath ? join(currentPath, remaining) : remaining
       break
     }
     
-    // Check path when '-' is replaced with '/'
+    // Check path when '-' is replaced with path separator
     const possiblePart = remaining.substring(0, nextDashIndex)
-    const possiblePathAsSlash = join(currentPath, possiblePart)
+    const possiblePathAsSlash = currentPath ? join(currentPath, possiblePart) : possiblePart
     
     // Also check path when '-' is replaced with '_'
-    const possiblePathAsUnderscore = join(currentPath, possiblePart.replace(/-/g, '_'))
+    const possiblePathAsUnderscore = currentPath ? join(currentPath, possiblePart.replace(/-/g, '_')) : possiblePart.replace(/-/g, '_')
     
-    if (existsSync(possiblePathAsSlash)) {
-      // If directory exists, separate with '/'
+    // Resolve paths to handle Windows drive letters and normalize
+    const resolvedPathAsSlash = resolve(possiblePathAsSlash)
+    const resolvedPathAsUnderscore = resolve(possiblePathAsUnderscore)
+    
+    if (existsSync(resolvedPathAsSlash)) {
+      // If directory exists, separate with path separator
       parts.push(possiblePart)
       currentPath = possiblePathAsSlash
       remaining = remaining.substring(nextDashIndex + 1)
-    } else if (existsSync(possiblePathAsUnderscore)) {
+    } else if (existsSync(resolvedPathAsUnderscore)) {
       // If exists when replaced with '_', process with '_'
       parts.push(possiblePart.replace(/-/g, '_'))
       currentPath = possiblePathAsUnderscore
@@ -88,16 +93,20 @@ export function resolveProjectPath(projectName: string): string {
         if (nextSearchIndex === -1) {
           // Search to the end
           const testPart = remaining
-          const testPath = join(currentPath, testPart)
+          const testPath = currentPath ? join(currentPath, testPart) : testPart
           const testPartWithUnderscore = testPart.replace(/-/g, '_')
-          const testPathWithUnderscore = join(currentPath, testPartWithUnderscore)
+          const testPathWithUnderscore = currentPath ? join(currentPath, testPartWithUnderscore) : testPartWithUnderscore
           
-          if (existsSync(testPath)) {
+          // Resolve paths for Windows compatibility
+          const resolvedTestPath = resolve(testPath)
+          const resolvedTestPathWithUnderscore = resolve(testPathWithUnderscore)
+          
+          if (existsSync(resolvedTestPath)) {
             parts.push(testPart)
             currentPath = testPath
             remaining = ''
             foundValid = true
-          } else if (existsSync(testPathWithUnderscore)) {
+          } else if (existsSync(resolvedTestPathWithUnderscore)) {
             parts.push(testPartWithUnderscore)
             currentPath = testPathWithUnderscore
             remaining = ''
@@ -108,19 +117,23 @@ export function resolveProjectPath(projectName: string): string {
         
         // Test including up to next '-'
         const testPart = remaining.substring(0, nextSearchIndex)
-        const testPath = join(currentPath, testPart)
+        const testPath = currentPath ? join(currentPath, testPart) : testPart
         
         // Also test path with '_'
         const testPartWithUnderscore = testPart.replace(/-/g, '_')
-        const testPathWithUnderscore = join(currentPath, testPartWithUnderscore)
+        const testPathWithUnderscore = currentPath ? join(currentPath, testPartWithUnderscore) : testPartWithUnderscore
         
-        if (existsSync(testPath)) {
+        // Resolve paths for Windows compatibility  
+        const resolvedTestPath = resolve(testPath)
+        const resolvedTestPathWithUnderscore = resolve(testPathWithUnderscore)
+        
+        if (existsSync(resolvedTestPath)) {
           parts.push(testPart)
           currentPath = testPath
           remaining = remaining.substring(nextSearchIndex + 1)
           foundValid = true
           break
-        } else if (existsSync(testPathWithUnderscore)) {
+        } else if (existsSync(resolvedTestPathWithUnderscore)) {
           parts.push(testPartWithUnderscore)
           currentPath = testPathWithUnderscore
           remaining = remaining.substring(nextSearchIndex + 1)
@@ -134,14 +147,14 @@ export function resolveProjectPath(projectName: string): string {
       if (!foundValid) {
         // If nothing matches, treat the whole as one
         parts.push(remaining)
-        currentPath = join(currentPath, remaining)
+        currentPath = currentPath ? join(currentPath, remaining) : remaining
         break
       }
     }
   }
   
-  // Combine result
-  const result = '/' + parts.join('/')
+  // Combine result using path.resolve for cross-platform compatibility
+  const result = resolve(sep, ...parts)
   
   // Save to cache
   pathCache.set(projectName, result)

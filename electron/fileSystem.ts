@@ -1,5 +1,5 @@
 import { promises as fs } from 'fs'
-import { join, basename } from 'path'
+import { join, basename, resolve, isAbsolute } from 'path'
 import { homedir } from 'os'
 import { resolveProjectPath } from './pathResolver'
 
@@ -61,10 +61,11 @@ export async function getProjects(): Promise<Project[]> {
   }
 }
 
+
 export async function getSessions(projectName: string): Promise<Session[]> {
   try {
     // Check if projectName is a project name or full path
-    const projectPath = projectName.startsWith('/') 
+    const projectPath = isAbsolute(projectName)
       ? projectName 
       : join(CLAUDE_PROJECTS_PATH, projectName.replace(/\//g, '-'))
     
