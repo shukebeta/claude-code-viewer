@@ -53,127 +53,13 @@ export function resolveProjectPath(projectName: string): string {
     }
   }
 
-  // Array to construct result path
-  const parts: string[] = []
-  
   // Remove first '-' as it represents root (Unix paths only)
   let remaining = projectName.substring(1)
   
-  // Handle empty directory names (starting with --)
-  while (remaining.startsWith('-')) {
-    // Consecutive '-' means empty directory
-    parts.push('')
-    remaining = remaining.substring(1)
-  }
-  
-  // Path constructed so far
-  let currentPath = ''
-  
-  while (remaining.length > 0) {
-    // Find next '-' position
-    let nextDashIndex = remaining.indexOf('-')
-    
-    if (nextDashIndex === -1) {
-      // If no more '-', treat the rest as one part
-      parts.push(remaining)
-      currentPath = currentPath ? join(currentPath, remaining) : remaining
-      break
-    }
-    
-    // Check path when '-' is replaced with path separator
-    const possiblePart = remaining.substring(0, nextDashIndex)
-    const possiblePathAsSlash = currentPath ? join(currentPath, possiblePart) : possiblePart
-    
-    // Also check path when '-' is replaced with '_'
-    const possiblePathAsUnderscore = currentPath ? join(currentPath, possiblePart.replace(/-/g, '_')) : possiblePart.replace(/-/g, '_')
-    
-    // Resolve paths to handle Windows drive letters and normalize
-    const resolvedPathAsSlash = resolve(possiblePathAsSlash)
-    const resolvedPathAsUnderscore = resolve(possiblePathAsUnderscore)
-    
-    if (existsSync(resolvedPathAsSlash)) {
-      // If directory exists, separate with path separator
-      parts.push(possiblePart)
-      currentPath = possiblePathAsSlash
-      remaining = remaining.substring(nextDashIndex + 1)
-    } else if (existsSync(resolvedPathAsUnderscore)) {
-      // If exists when replaced with '_', process with '_'
-      parts.push(possiblePart.replace(/-/g, '_'))
-      currentPath = possiblePathAsUnderscore
-      remaining = remaining.substring(nextDashIndex + 1)
-    } else {
-      // If directory doesn't exist, include up to next '-' as one part
-      // Example: claude-code-web case
-      let foundValid = false
-      let searchIndex = nextDashIndex + 1
-      
-      while (searchIndex < remaining.length) {
-        const nextSearchIndex = remaining.indexOf('-', searchIndex)
-        if (nextSearchIndex === -1) {
-          // Search to the end
-          const testPart = remaining
-          const testPath = currentPath ? join(currentPath, testPart) : testPart
-          const testPartWithUnderscore = testPart.replace(/-/g, '_')
-          const testPathWithUnderscore = currentPath ? join(currentPath, testPartWithUnderscore) : testPartWithUnderscore
-          
-          // Resolve paths for Windows compatibility
-          const resolvedTestPath = resolve(testPath)
-          const resolvedTestPathWithUnderscore = resolve(testPathWithUnderscore)
-          
-          if (existsSync(resolvedTestPath)) {
-            parts.push(testPart)
-            currentPath = testPath
-            remaining = ''
-            foundValid = true
-          } else if (existsSync(resolvedTestPathWithUnderscore)) {
-            parts.push(testPartWithUnderscore)
-            currentPath = testPathWithUnderscore
-            remaining = ''
-            foundValid = true
-          }
-          break
-        }
-        
-        // Test including up to next '-'
-        const testPart = remaining.substring(0, nextSearchIndex)
-        const testPath = currentPath ? join(currentPath, testPart) : testPart
-        
-        // Also test path with '_'
-        const testPartWithUnderscore = testPart.replace(/-/g, '_')
-        const testPathWithUnderscore = currentPath ? join(currentPath, testPartWithUnderscore) : testPartWithUnderscore
-        
-        // Resolve paths for Windows compatibility  
-        const resolvedTestPath = resolve(testPath)
-        const resolvedTestPathWithUnderscore = resolve(testPathWithUnderscore)
-        
-        if (existsSync(resolvedTestPath)) {
-          parts.push(testPart)
-          currentPath = testPath
-          remaining = remaining.substring(nextSearchIndex + 1)
-          foundValid = true
-          break
-        } else if (existsSync(resolvedTestPathWithUnderscore)) {
-          parts.push(testPartWithUnderscore)
-          currentPath = testPathWithUnderscore
-          remaining = remaining.substring(nextSearchIndex + 1)
-          foundValid = true
-          break
-        }
-        
-        searchIndex = nextSearchIndex + 1
-      }
-      
-      if (!foundValid) {
-        // If nothing matches, treat the whole as one
-        parts.push(remaining)
-        currentPath = currentPath ? join(currentPath, remaining) : remaining
-        break
-      }
-    }
-  }
-  
-  // Combine result using path.resolve for cross-platform compatibility
-  const result = resolve(sep, ...parts)
+  // Simple approach: replace all '-' with path separator
+  // This works for most cases and is much simpler than the complex file existence checking
+  const pathParts = remaining.split('-')
+  const result = resolve(sep, ...pathParts)
   
   // Save to cache
   pathCache.set(projectName, result)
