@@ -125,6 +125,37 @@ describe('pathResolver', () => {
         expect(result1).toBe(result2)
         expect(result1).toBe('C:\\Users\\test')
       })
+
+      it('should preserve original hyphen directories when they actually exist', () => {
+        mockExistsSync.mockImplementation((path: string) => {
+          const pathStr = String(path)
+          // Only the original David-Wei directory exists (not David.Wei or David\Wei)
+          return pathStr === '\\Users\\David-Wei' || 
+                 pathStr === '\\Users\\David-Wei\\bin' ||
+                 pathStr === '\\Users' ||
+                 pathStr === '\\'
+        })
+
+        const result = resolveProjectPath('C--Users-David-Wei-bin', path.win32)
+        expect(result).toBe('C:\\Users\\David-Wei\\bin')
+      })
+    })
+
+    describe('Unix path edge cases', () => {
+      it('should preserve original hyphen directories in Unix paths when they exist', () => {
+        mockExistsSync.mockImplementation((path: string) => {
+          const pathStr = String(path)
+          // Only the original happy-notes directory exists (not happy_notes)
+          return pathStr === '/home/davidwei/AndroidStudioProjects/happy-notes' ||
+                 pathStr === '/home/davidwei/AndroidStudioProjects' ||
+                 pathStr === '/home/davidwei' ||
+                 pathStr === '/home' ||
+                 pathStr === '/'
+        })
+
+        const result = resolveProjectPath('-home-davidwei-AndroidStudioProjects-happy-notes', path.posix)
+        expect(result).toBe('/home/davidwei/AndroidStudioProjects/happy-notes')
+      })
     })
   })
 
