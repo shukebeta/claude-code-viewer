@@ -22,15 +22,29 @@ export const ToolPreview: React.FC<ToolPreviewProps> = ({
   onMouseEnter,
   onMouseLeave
 }) => {
-  const [copied, setCopied] = useState(false)
+  const [copiedParams, setCopiedParams] = useState(false)
+  const [copiedResult, setCopiedResult] = useState(false)
 
   const handleCopyParameters = async () => {
     if (!parameters) return
 
     try {
       await navigator.clipboard.writeText(JSON.stringify(parameters, null, 2))
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      setCopiedParams(true)
+      setTimeout(() => setCopiedParams(false), 2000)
+    } catch (err) {
+      console.error('Failed to copy to clipboard:', err)
+    }
+  }
+
+  const handleCopyResult = async () => {
+    if (!result && !error) return
+
+    try {
+      const contentToCopy = error || (typeof result === 'string' ? result : JSON.stringify(result, null, 2))
+      await navigator.clipboard.writeText(contentToCopy)
+      setCopiedResult(true)
+      setTimeout(() => setCopiedResult(false), 2000)
     } catch (err) {
       console.error('Failed to copy to clipboard:', err)
     }
@@ -340,24 +354,24 @@ export const ToolPreview: React.FC<ToolPreviewProps> = ({
                     borderRadius: '4px',
                     display: 'flex',
                     alignItems: 'center',
-                    color: copied ? '#22c55e' : 'var(--muted-foreground)',
+                    color: copiedParams ? '#22c55e' : 'var(--muted-foreground)',
                     transition: 'all 0.2s ease'
                   }}
                   onMouseEnter={(e) => {
-                    if (!copied) {
+                    if (!copiedParams) {
                       e.currentTarget.style.background = 'hsl(var(--bg-300))'
                       e.currentTarget.style.color = 'var(--foreground)'
                     }
                   }}
                   onMouseLeave={(e) => {
-                    if (!copied) {
+                    if (!copiedParams) {
                       e.currentTarget.style.background = 'none'
                       e.currentTarget.style.color = 'var(--muted-foreground)'
                     }
                   }}
-                  title={copied ? 'Copied!' : 'Copy parameters to clipboard'}
+                  title={copiedParams ? 'Copied!' : 'Copy parameters to clipboard'}
                 >
-                  {copied ? <Check size={12} /> : <Copy size={12} />}
+                  {copiedParams ? <Check size={12} /> : <Copy size={12} />}
                 </button>
               )}
             </div>
@@ -382,9 +396,43 @@ export const ToolPreview: React.FC<ToolPreviewProps> = ({
             color: status === 'error' ? '#ef4444' : 'var(--foreground)',
             marginBottom: '6px',
             textTransform: 'uppercase',
-            letterSpacing: '0.05em'
+            letterSpacing: '0.05em',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
           }}>
             {status === 'error' ? 'Error' : 'Result'}
+            {(result || error) && (
+              <button
+                onClick={handleCopyResult}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  borderRadius: '4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  color: copiedResult ? '#22c55e' : (status === 'error' ? '#ef4444' : 'var(--muted-foreground)'),
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  if (!copiedResult) {
+                    e.currentTarget.style.background = 'hsl(var(--bg-300))'
+                    e.currentTarget.style.color = status === 'error' ? '#ef4444' : 'var(--foreground)'
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!copiedResult) {
+                    e.currentTarget.style.background = 'none'
+                    e.currentTarget.style.color = status === 'error' ? '#ef4444' : 'var(--muted-foreground)'
+                  }
+                }}
+                title={copiedResult ? 'Copied!' : `Copy ${status === 'error' ? 'error' : 'result'} to clipboard`}
+              >
+                {copiedResult ? <Check size={12} /> : <Copy size={12} />}
+              </button>
+            )}
           </div>
           <div style={{
             fontSize: '11px',
