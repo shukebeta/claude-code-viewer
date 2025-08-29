@@ -1,4 +1,5 @@
-import React from 'react'
+import React, { useState } from 'react'
+import { Copy, Check } from 'lucide-react'
 
 interface ToolPreviewProps {
   toolName: string
@@ -21,6 +22,19 @@ export const ToolPreview: React.FC<ToolPreviewProps> = ({
   onMouseEnter,
   onMouseLeave
 }) => {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopyParameters = async () => {
+    if (!parameters) return
+
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(parameters, null, 2))
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      console.error('Failed to copy to clipboard:', err)
+    }
+  }
   // Calculate positioning - intelligently position based on available space
   const getSmartPosition = () => {
     const viewportWidth = window.innerWidth
@@ -309,9 +323,43 @@ export const ToolPreview: React.FC<ToolPreviewProps> = ({
               color: 'var(--foreground)',
               marginBottom: '6px',
               textTransform: 'uppercase',
-              letterSpacing: '0.05em'
+              letterSpacing: '0.05em',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
             }}>
               Parameters
+              {parameters && (
+                <button
+                  onClick={handleCopyParameters}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '4px',
+                    borderRadius: '4px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    color: copied ? '#22c55e' : 'var(--muted-foreground)',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!copied) {
+                      e.currentTarget.style.background = 'hsl(var(--bg-300))'
+                      e.currentTarget.style.color = 'var(--foreground)'
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!copied) {
+                      e.currentTarget.style.background = 'none'
+                      e.currentTarget.style.color = 'var(--muted-foreground)'
+                    }
+                  }}
+                  title={copied ? 'Copied!' : 'Copy parameters to clipboard'}
+                >
+                  {copied ? <Check size={12} /> : <Copy size={12} />}
+                </button>
+              )}
             </div>
             {keyParams.map((param, index) => (
               <div key={index} style={{
