@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Copy, Check } from 'lucide-react'
 
 interface ToolPreviewProps {
@@ -24,6 +24,7 @@ export const ToolPreview: React.FC<ToolPreviewProps> = ({
 }) => {
   const [copiedParams, setCopiedParams] = useState(false)
   const [copiedResult, setCopiedResult] = useState(false)
+  const [isSelecting, setIsSelecting] = useState(false)
 
   const handleCopyParameters = async () => {
     if (!parameters) return
@@ -49,6 +50,41 @@ export const ToolPreview: React.FC<ToolPreviewProps> = ({
       console.error('Failed to copy to clipboard:', err)
     }
   }
+
+  // Handle text selection detection
+  const handleMouseDown = () => {
+    setIsSelecting(true)
+  }
+
+  const handleMouseUp = () => {
+    // Small delay to ensure selection is complete
+    setTimeout(() => {
+      const selection = window.getSelection()
+      const hasSelection = selection && selection.toString().length > 0
+      setIsSelecting(hasSelection)
+    }, 50)
+  }
+
+  const handleSelectionChange = () => {
+    const selection = window.getSelection()
+    const hasSelection = selection && selection.toString().length > 0
+    setIsSelecting(hasSelection)
+  }
+
+  // Enhanced mouse leave handler that respects text selection
+  const handleMouseLeaveWithSelection = () => {
+    if (!isSelecting && onMouseLeave) {
+      onMouseLeave()
+    }
+  }
+
+  // Add event listener for selection changes
+  useEffect(() => {
+    document.addEventListener('selectionchange', handleSelectionChange)
+    return () => {
+      document.removeEventListener('selectionchange', handleSelectionChange)
+    }
+  }, [])
   // Calculate positioning - intelligently position based on available space
   const getSmartPosition = () => {
     const viewportWidth = window.innerWidth
@@ -274,7 +310,9 @@ export const ToolPreview: React.FC<ToolPreviewProps> = ({
         fontSize: '12px'
       }}
       onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
+      onMouseLeave={handleMouseLeaveWithSelection}
+      onMouseDown={handleMouseDown}
+      onMouseUp={handleMouseUp}
     >
       {/* Header */}
       <div style={{
