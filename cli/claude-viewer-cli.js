@@ -145,8 +145,8 @@ async function main() {
   let targetUrl = deepLink;
 
   if (isDev) {
-    const params = new URLSearchParams(new URL(deepLink).search);
-    targetUrl = `http://localhost:5173/dev-open?${params.toString()}`;
+  const params = new URLSearchParams(new URL(deepLink).search);
+  targetUrl = `http://localhost:6173/dev-open?${params.toString()}`;
     console.log('Running in dev mode. Opening URL in browser...');
   }
 
