@@ -29,5 +29,12 @@ app.get('/api/session', async (req, res) => {
   res.json(messages)
 })
 
+app.get('/api/session-mapping', async (req, res) => {
+  const file = req.query.file
+  if (!file) return res.status(400).json({ error: 'file query required' })
+  const mapping = await fsHelpers.mapSessionMessages(file)
+  res.json(mapping)
+})
+
 const port = process.env.PORT || 5173
 app.listen(port, () => console.log(`Claude webapp listening on http://localhost:${port}`))

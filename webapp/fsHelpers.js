@@ -130,8 +130,9 @@ async function mapSessionMessages(filePath) {
 
   // Normalize messages with canonical id, type, timestamp, and content
   const norm = msgs.map((m, i) => {
-    const id = m.uuid || (m.message && m.message.id) || `i_${i}`
-    let type = m.type
+  const id = m.uuid || (m.message && m.message.id) || `i_${i}`
+  const rawType = m.type
+  let type = rawType
 
     // Normalize tool messages to assistant (tool_use, tool_result, etc.)
     if (type === 'tool_use' || type === 'tool_result' || type === 'tool') type = 'assistant'
@@ -139,15 +140,28 @@ async function mapSessionMessages(filePath) {
     // If not set, prefer message.role (e.g., { message: { role: 'assistant' } })
     if (!type && m.message && m.message.role) type = m.message.role
 
-    // If nested message.type indicates a tool use, treat as assistant
+    // If nested message.type indicates a tool use/result, treat as assistant
     if (!type && m.message && (m.message.type === 'tool_use' || m.message.type === 'tool_result' || m.message.type === 'tool')) {
       type = 'assistant'
     }
 
-    if (!type && m.userType === 'external') type = 'user'
+    // If message content is an array and contains tool_result/tool entries, force as assistant
+    const contentCandidate = (m.message && m.message.content) || m.content
+    if (Array.isArray(contentCandidate)) {
+      for (const item of contentCandidate) {
+        if (item && (item.type === 'tool_result' || item.type === 'tool_use' || item.type === 'tool')) {
+          type = 'assistant'
+          break
+        }
+      }
+    }
+
+  if (!type && m.userType === 'external') type = 'user'
+  // If raw type indicates a tool (e.g., 'tool_result'), force assistant classification
+  if (typeof rawType === 'string' && rawType.startsWith('tool')) type = 'assistant'
     const timestamp = m.timestamp || (m.message && m.message.timestamp) || null
     const content = (m.message && (m.message.content || m.message)) || m.content || m
-    return { raw: m, id, type, timestamp, content, index: i, parentUuid: m.parentUuid }
+  return { raw: m, rawType, id, type, timestamp, content, index: i, parentUuid: m.parentUuid }
   })
 
   // Build users array and assistant array
@@ -170,6 +184,17 @@ async function mapSessionMessages(filePath) {
 
   // Assign assistants
   for (const a of assistants) {
+    // If this assistant message is a tool_result that references another assistant (parentUuid),
+    // try to merge its content into the referenced assistant instead of treating it as separate.
+    if (a.raw && a.raw.type === 'tool_result' && a.parentUuid) {
+      const parentAssistant = assistants.find(x => x.id === a.parentUuid || x.raw.uuid === a.parentUuid)
+      if (parentAssistant) {
+        // Merge content: append to parentAssistant.content (array or string)
+        if (Array.isArray(parentAssistant.content)) parentAssistant.content.push(a.content)
+        else parentAssistant.content = [parentAssistant.content, a.content]
+        continue // skip assigning this message separately
+      }
+    }
     let assigned = null
     // 1) explicit parentUuid
     if (a.parentUuid) assigned = userById(a.parentUuid)
@@ -211,7 +236,7 @@ async function mapSessionMessages(filePath) {
   }
 
   // Prepare simplified user list (id, preview, timestamp)
-  const usersOut = users.map(u => ({ id: u.id, preview: (typeof u.content === 'string' ? u.content : JSON.stringify(u.content)).substring(0,200), timestamp: u.timestamp }))
+  const usersOut = users.map(u => ({ id: u.id, preview: (typeof u.content === 'string' ? u.content : JSON.stringify(u.content)).substring(0,200), timestamp: u.timestamp, rawType: u.rawType || null }))
 
   // Convert assistant messages to serializable form
   const mapOut = {}

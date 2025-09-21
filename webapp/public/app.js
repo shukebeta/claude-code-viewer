@@ -42,24 +42,50 @@ async function loadSessions(projectName) {
 }
 
 async function loadSessionMessages(filePath) {
-  const container = document.getElementById('messages')
-  container.innerHTML = 'Loading...'
+  const userList = document.getElementById('userList')
+  const assistantList = document.getElementById('assistantList')
+  userList.innerHTML = 'Loading...'
+  assistantList.innerHTML = 'Select a user message'
   try {
-    const msgs = await fetchJSON(`/api/session?file=${encodeURIComponent(filePath)}`)
-    container.innerHTML = ''
-    msgs.forEach(m => {
-      const box = document.createElement('div')
-      box.style.borderBottom = '1px solid #eee'
-      box.style.padding = '8px'
-      const who = el('div', m.type + ' — ' + (m.timestamp || ''))
-      who.style.fontWeight = '600'
-      const content = el('pre', JSON.stringify(m.message || m.content || m, null, 2))
-      box.appendChild(who)
-      box.appendChild(content)
-      container.appendChild(box)
+    const mapping = await fetchJSON(`/api/session-mapping?file=${encodeURIComponent(filePath)}`)
+    userList.innerHTML = ''
+    assistantList.innerHTML = 'Select a user message'
+
+    if (!mapping || !mapping.users || mapping.users.length === 0) {
+      userList.textContent = 'No user messages found'
+      return
+    }
+
+    mapping.users.forEach(u => {
+      const btn = el('button', `${u.preview.substring(0,100)}${u.preview.length>100? '…':''}`)
+      btn.style.display = 'block'
+      btn.onclick = () => {
+        renderAssistantList(u.id, mapping.mapping)
+      }
+      userList.appendChild(btn)
     })
-    if (msgs.length === 0) container.textContent = 'No messages'
-  } catch (e) { container.textContent = 'Error loading messages' }
+  } catch (e) { userList.textContent = 'Error loading messages' }
+}
+
+function renderAssistantList(userId, mapping) {
+  const assistantList = document.getElementById('assistantList')
+  assistantList.innerHTML = ''
+  const arr = mapping[userId] || mapping['__no_user__'] || []
+  if (arr.length === 0) {
+    assistantList.textContent = 'No assistant replies for this message'
+    return
+  }
+  arr.forEach(a => {
+    const box = document.createElement('div')
+    box.style.borderBottom = '1px solid #eee'
+    box.style.padding = '8px'
+    const who = el('div', (a.timestamp||'') )
+    who.style.fontWeight = '600'
+    const content = el('pre', JSON.stringify(a.content || a.raw || a, null, 2))
+    box.appendChild(who)
+    box.appendChild(content)
+    assistantList.appendChild(box)
+  })
 }
 
 loadProjects()
