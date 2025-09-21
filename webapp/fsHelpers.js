@@ -122,3 +122,104 @@ async function readSessionFile(filePath) {
 }
 
 module.exports = { getProjects, getSessions, readSessionFile }
+
+async function mapSessionMessages(filePath) {
+  const msgs = await readSessionFile(filePath)
+  const users = []
+  const assistants = []
+
+  // Normalize messages with canonical id, type, timestamp, and content
+  const norm = msgs.map((m, i) => {
+    const id = m.uuid || (m.message && m.message.id) || `i_${i}`
+    let type = m.type
+
+    // Normalize tool messages to assistant (tool_use, tool_result, etc.)
+    if (type === 'tool_use' || type === 'tool_result' || type === 'tool') type = 'assistant'
+
+    // If not set, prefer message.role (e.g., { message: { role: 'assistant' } })
+    if (!type && m.message && m.message.role) type = m.message.role
+
+    // If nested message.type indicates a tool use, treat as assistant
+    if (!type && m.message && (m.message.type === 'tool_use' || m.message.type === 'tool_result' || m.message.type === 'tool')) {
+      type = 'assistant'
+    }
+
+    if (!type && m.userType === 'external') type = 'user'
+    const timestamp = m.timestamp || (m.message && m.message.timestamp) || null
+    const content = (m.message && (m.message.content || m.message)) || m.content || m
+    return { raw: m, id, type, timestamp, content, index: i, parentUuid: m.parentUuid }
+  })
+
+  // Build users array and assistant array
+  for (const m of norm) {
+    if (m.type === 'user') users.push(m)
+    else if (m.type === 'assistant') assistants.push(m)
+  }
+
+  // If timestamps present, convert to Date for comparisons
+  const toDate = t => { try { return t ? new Date(t) : null } catch { return null } }
+  norm.forEach(n => { n.ts = toDate(n.timestamp) })
+
+  // Build mapping from user.id to assistant messages
+  const mapping = {}
+  // initialize mapping for each user
+  users.forEach(u => { mapping[u.id] = [] })
+
+  // Helper: find user by uuid/id
+  const userById = id => users.find(u => u.raw.uuid === id || u.id === id)
+
+  // Assign assistants
+  for (const a of assistants) {
+    let assigned = null
+    // 1) explicit parentUuid
+    if (a.parentUuid) assigned = userById(a.parentUuid)
+    // 2) explicit parent in raw fields
+    if (!assigned && a.raw && a.raw.parentUuid) assigned = userById(a.raw.parentUuid)
+    // 3) find closest preceding user by timestamp or index
+    if (!assigned) {
+      // prefer timestamp if available
+      if (a.ts) {
+        // find user with max ts < a.ts
+        let candidate = null
+        for (const u of users) {
+          if (u.ts && u.ts <= a.ts) {
+            if (!candidate || u.ts > candidate.ts) candidate = u
+          }
+        }
+        assigned = candidate
+      }
+      // fallback to previous user by index
+      if (!assigned) {
+        // find user with highest index less than assistant index
+        let candidate = null
+        for (const u of users) {
+          if (u.index <= a.index) {
+            if (!candidate || u.index > candidate.index) candidate = u
+          }
+        }
+        assigned = candidate
+      }
+    }
+
+    if (assigned) mapping[assigned.id].push(a)
+    else {
+      // no users at all: group under a special key
+      const key = '__no_user__'
+      mapping[key] = mapping[key] || []
+      mapping[key].push(a)
+    }
+  }
+
+  // Prepare simplified user list (id, preview, timestamp)
+  const usersOut = users.map(u => ({ id: u.id, preview: (typeof u.content === 'string' ? u.content : JSON.stringify(u.content)).substring(0,200), timestamp: u.timestamp }))
+
+  // Convert assistant messages to serializable form
+  const mapOut = {}
+  for (const [k, arr] of Object.entries(mapping)) {
+    mapOut[k] = arr.map(a => ({ id: a.id, content: a.content, timestamp: a.timestamp, raw: a.raw }))
+  }
+
+  return { users: usersOut, mapping: mapOut }
+}
+
+module.exports.mapSessionMessages = mapSessionMessages
