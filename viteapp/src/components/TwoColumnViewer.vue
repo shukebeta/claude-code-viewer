@@ -5,9 +5,14 @@
       <div v-if="loading">Loading...</div>
       <ul v-else>
         <li v-for="u in users" :key="u.id" class="user-item" :class="{ selected: selectedUser && selectedUser.id === u.id }">
-          <button class="user-preview" @click="selectUser(u)">
-            <MessageRenderer :content="u.content || u.preview || ''" />
-          </button>
+          <template v-if="u.nonInteractive">
+            <div class="user-preview muted-entry">{{ u.preview }}</div>
+          </template>
+          <template v-else>
+            <button class="user-preview" @click="selectUser(u)">
+              <MessageRenderer :content="u.content || u.preview || ''" />
+            </button>
+          </template>
         </li>
       </ul>
     </div>
@@ -16,12 +21,15 @@
       <div v-if="!selectedUser">Select a user message</div>
       <ul v-else>
         <li v-for="a in mapping[selectedUser.id] || []" :key="a.id" class="assistant-item">
-          <div class="assistant-card card" style="position:relative">
-            <button class="copy-btn" :class="{ copied: a._copied }" @click.prevent="copyReply(a)" :title="a._copied ? 'Copied' : 'Copy reply'">
+          <div class="assistant-card card" :class="{ muted: a.muted }" style="position:relative">
+            <button v-if="!a._noCopy && !a.muted" class="copy-btn" :class="{ copied: a._copied }" @click.prevent="copyReply(a)" :title="a._copied ? 'Copied' : 'Copy reply'">
               <svg v-if="!a._copied" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
               <svg v-else xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
             </button>
-            <div class="assistant-full"><MessageRenderer :content="a.content" /></div>
+            <div class="assistant-full">
+              <MessageRenderer :content="a.content" />
+              <div v-if="a.muted" class="muted-note">- user interruption -</div>
+            </div>
           </div>
         </li>
       </ul>
@@ -47,8 +55,48 @@ export default {
       try {
         const res = await fetch('/api/session-mapping?file=' + encodeURIComponent(this.file))
         const json = await res.json()
-        this.users = json.users || []
-        this.mapping = json.mapping || {}
+        // Clean initial users/mapping: remove skippable entries and mark interruptions
+        const rawUsers = json.users || []
+        const rawMapping = json.mapping || {}
+        // process users: remove skippable and mark interruptions/commands as nonInteractive
+        this.users = (rawUsers || []).map(u => {
+          const txt = this.extractText(u.content || u.preview || '')
+          if (this.isSkippable(txt)) return null
+          const out = Object.assign({}, u)
+          // interruption
+          if (this.isInterruptedByUser(txt)) {
+            out.interruption = true
+            out.preview = '- user interruption -'
+            out.nonInteractive = true
+          } else {
+            // command messages
+            const cm = String(txt).match(/<command-message>(.*?)<\/command-message>/i) || String(txt).match(/<command-name>(.*?)<\/command-name>/i)
+            if (cm && cm[1]) {
+              const cmd = cm[1].trim()
+              out.command = cmd
+              out.preview = `command: ${cmd.startsWith('/') ? cmd : '/' + cmd}`
+              out.nonInteractive = true
+            }
+          }
+          return out
+        }).filter(Boolean)
+        // process mapping arrays
+        const cleaned = {}
+        for (const [k, arr] of Object.entries(rawMapping)) {
+          const kept = (arr || []).filter(item => {
+            const txt = this.extractText(item.content)
+            return !this.isSkippable(txt)
+          }).map(item => {
+            const txt = this.extractText(item.content)
+            if (this.isInterruptedByUser(txt)) {
+              item.muted = true
+              item._noCopy = true
+            }
+            return item
+          })
+          if (kept.length > 0) cleaned[k] = kept
+        }
+        this.mapping = cleaned
         this.selectedUser = null
         // setup SSE
         this.cleanupEventSource()
@@ -94,16 +142,37 @@ export default {
         }
       }
 
-      const content = (m.message && (m.message.content || m.message)) || m.content || m
+  const content = (m.message && (m.message.content || m.message)) || m.content || m
+  const flatText = this.extractText(content)
+
+  // Skip unhelpful messages: Caveat hints and raw local-command stdout
+  if (this.isSkippable(flatText)) return
 
       // If rawType starts with 'tool', force assistant
       if (typeof rawType === 'string' && rawType.startsWith('tool')) type = 'assistant'
 
       if (type === 'user') {
-        const preview = (typeof content === 'string' ? content : JSON.stringify(content)).substring(0,200)
+        const previewRaw = (typeof content === 'string' ? content : JSON.stringify(content))
+        const preview = previewRaw.substring(0,200)
         const userObj = { id, preview, content, timestamp: m.timestamp }
-  this.users.push(userObj)
-  this.mapping[id] = []
+        // detect interruptions and command messages
+        if (this.isInterruptedByUser(previewRaw)) {
+          userObj.interruption = true
+          // show a clean single-line preview
+          userObj.preview = '- user interruption -'
+          userObj.nonInteractive = true
+        } else {
+          // detect command-message markup
+          const cm = String(previewRaw).match(/<command-message>(.*?)<\/command-message>/i) || String(previewRaw).match(/<command-name>(.*?)<\/command-name>/i)
+          if (cm && cm[1]) {
+            const cmd = cm[1].trim()
+            userObj.command = cmd
+            userObj.preview = `command: ${cmd.startsWith('/') ? cmd : '/' + cmd}`
+            userObj.nonInteractive = true
+          }
+        }
+        this.users.push(userObj)
+        this.mapping[id] = []
       } else {
         // If this is a tool_result that references a parent assistant, try to merge
         if (rawType === 'tool_result' && m.parentUuid) {
@@ -125,6 +194,11 @@ export default {
         if (m.parentUuid) assigned = this.users.find(u => u.id === m.parentUuid)
         if (!assigned && this.users.length > 0) assigned = this.users[this.users.length - 1]
   const assistantOut = { id, content, timestamp: m.timestamp, raw: m }
+        // Mark interrupted-by-user messages as muted (grey, no copy)
+        if (this.isInterruptedByUser(flatText)) {
+          assistantOut.muted = true
+          assistantOut._noCopy = true
+        }
         if (assigned) {
           const arr = this.mapping[assigned.id] || []
           arr.push(assistantOut)
@@ -137,7 +211,20 @@ export default {
         }
       }
     },
-    selectUser(u) { this.selectedUser = u }
+    isSkippable(text) {
+      if (!text) return false
+      const low = String(text).toLowerCase()
+      // skip caveat notes and local-command-stdout blocks
+      if (low.includes('caveat:') || low.includes('the messages below were generated by the user')) return true
+      if (low.includes('local-command-stdout') || low.includes('<local-command-stdout>')) return true
+      return false
+    },
+    isInterruptedByUser(text) {
+      if (!text) return false
+      const s = String(text).trim()
+      return s === 'Request interrupted by user' || s.includes('Request interrupted by user')
+    },
+  selectUser(u) { if (u && u.nonInteractive) return; this.selectedUser = u }
       ,
     async copyReply(a) {
       // optimistic feedback: set copied state immediately
@@ -206,6 +293,7 @@ export default {
 .left button { display: block; width: 100%; text-align: left; padding: 8px; border: 1px solid #eee; border-radius: 4px; background: white; box-sizing: border-box }
 .left button:hover { background: #fafafa }
 .left li.selected .user-preview { background: rgba(37,99,235,0.08); border-color: rgba(37,99,235,0.12) }
+.muted-entry { color: #666; font-style: italic; padding: 6px 8px; border: 1px solid #f0f0f0; border-radius:4px; background: #fbfbfb; line-height:1.1; margin:4px 0 }
 .right { flex: 1; min-width: 0; height: 100%; min-height: 0; overflow: auto }
 .right ul { padding: 0; margin: 0; list-style: none }
 pre { white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere; margin: 0; }
@@ -220,4 +308,6 @@ pre { white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere; ma
 .copy-btn svg { display:block }
 .copy-btn:hover { background: rgba(255,255,255,0.04) }
 .copy-btn.copied { background: rgba(52,211,153,0.16); color: var(--success) }
+.assistant-card.muted { opacity: 0.7; background: #f3f4f6 }
+.muted-note { color: #666; font-style: italic; margin-top: 6px; font-size: 13px }
 </style>

@@ -92,8 +92,25 @@ function renderReadTool(c) {
 
 function contentToHtml(c) {
   if (Array.isArray(c)) return c.map(contentToHtml).join('<br/>')
-  if (typeof c === 'string') return escapeHtml(c)
+
+  // If it's a plain string, check special cases first (interruptions/commands)
+  if (typeof c === 'string') {
+    const s = c.trim()
+    if (/request interrupted by user/i.test(s)) return `<div class="interruption">- user interruption -</div>`
+    const mcmd = s.match(/<command-message>(.*?)<\/command-message>/i) || s.match(/<command-name>(.*?)<\/command-name>/i)
+    if (mcmd && mcmd[1]) {
+      const cmd = mcmd[1].trim()
+      return `<div class="command-msg">command: ${escapeHtml(cmd.startsWith('/') ? cmd : '/' + cmd)}</div>`
+    }
+    return escapeHtml(c)
+  }
   if (!c || typeof c !== 'object') return escapeHtml(String(c))
+
+  // Extract a flat textual representation for special-case checks
+  const flat = (c && ((c.text && String(c.text)) || (c.content && typeof c.content === 'string' && c.content) || (c.message && (c.message.content || c.message.text)))) || ''
+  if (typeof flat === 'string' && /request interrupted by user/i.test(flat)) {
+    return `<div class="interruption">- user interruption -</div>`
+  }
 
   const t = c.type || (c.message && c.message.type) || null
   if (t === 'text' || t === 'message' || t === 'paragraph') return renderPlain(c)
@@ -114,6 +131,14 @@ function contentToHtml(c) {
   // Heuristics: tool_result-like structures
   if (c.type === 'tool_result' || (c.content && typeof c.content === 'string' && c.content.trim().startsWith('{'))) {
     return renderToolResult(c)
+  }
+
+  // Special-case: command-message blocks
+  // e.g. <command-message>clear</command-message>
+  if (typeof flat === 'string' && /<command-message>(.*?)<\/command-message>/i.test(flat)) {
+    const m = flat.match(/<command-message>(.*?)<\/command-message>/i)
+    const cmd = m && m[1] ? m[1].trim() : ''
+    return `<div class="command-msg">command: ${escapeHtml(cmd.startsWith('/') ? cmd : '/' + cmd)}</div>`
   }
 
   // fallback: if has content array, render recursively
@@ -178,4 +203,6 @@ const systemNote = computed(() => {
 .todo-list ul { padding-left: 20px }
 .system-note { color: #666; font-size: 12px; margin-top: 8px; display: none }
 .todo-list:hover + .system-note, .todo-container:hover .system-note { display: block }
+.interruption { color: #666; font-style: italic; }
+.command-msg { color: #666; font-weight: 600 }
 </style>

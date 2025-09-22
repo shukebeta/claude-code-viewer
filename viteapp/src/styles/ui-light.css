@@ -37,7 +37,8 @@ body{
 .meta{color:var(--muted); font-size:12px}
 /* trip the message preview container */
 .user-preview { display:block; width:100%; text-align:left; padding:8px; border-radius:6px }
-.user-preview .message-renderer { max-height:3.6em; overflow:hidden }
+/* Allow full user message height: remove preview max-height and overflow clipping */
+.user-preview .message-renderer { max-height: none; overflow: visible }
 /* responsive */
 @media (max-width:900px){
   .left-col{display:none}
