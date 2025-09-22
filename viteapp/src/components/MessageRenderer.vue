@@ -79,6 +79,17 @@ function renderTodoWrite(c) {
   return marked.parse(lines.join('\n'))
 }
 
+function renderReadTool(c) {
+  // Expecting structure like: { input: { path, content } } or { result: { content } }
+  const asContent = (c && (c.result && c.result.content)) || (c && (c.content || c.text)) || (c && c.input && c.input.content) || ''
+  // If content is an object with code field, prefer that
+  const code = (typeof asContent === 'object' && (asContent.code || asContent.text)) ? (asContent.code || asContent.text) : asContent
+  // Render inside a code block; try to preserve language if provided
+  const lang = (c && c.language) || (c && c.input && c.input.language) || ''
+  const escaped = escapeHtml(String(code || ''))
+  return `<pre class="code-block"><code${lang ? ` class="language-${escapeHtml(lang)}"` : ''}>${escaped}</code></pre>`
+}
+
 function contentToHtml(c) {
   if (Array.isArray(c)) return c.map(contentToHtml).join('<br/>')
   if (typeof c === 'string') return escapeHtml(c)
@@ -91,6 +102,10 @@ function contentToHtml(c) {
   // tool_use specific handlers
   if ((c.name === 'TodoWrite' || c.toolName === 'TodoWrite' || (c.message && c.message.name === 'TodoWrite')) ) {
     return renderTodoWrite(c)
+  }
+  // read tool: auto-expand and show code block
+  if ((c.name === 'Read' || c.toolName === 'Read' || (c.action && c.action === 'read') || (c.message && c.message.name === 'Read') || (c.type === 'read'))) {
+    return renderReadTool(c)
   }
   if (t === 'image') return renderImage(c)
   if (t === 'json' || t === 'object') return renderJson(c)
