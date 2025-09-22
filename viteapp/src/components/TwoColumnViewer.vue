@@ -13,8 +13,8 @@
       <h3>Assistant Replies</h3>
       <div v-if="!selectedUser">Select a user message</div>
       <ul v-else>
-        <li v-for="a in mapping[selectedUser.id] || []" :key="a.id">
-          <pre>{{ a.content }}</pre>
+        <li v-for="a in mapping[selectedUser.id] || []" :key="a.id" class="assistant-item">
+          <div class="assistant-full"><MessageRenderer :content="a.content" /></div>
         </li>
       </ul>
     </div>
@@ -22,7 +22,10 @@
 </template>
 
 <script>
+import MessageRenderer from './MessageRenderer.vue'
+
 export default {
+  components: { MessageRenderer },
   props: ['file'],
   data() {
     return { users: [], mapping: {}, loading: false, selectedUser: null, es: null }
@@ -62,7 +65,7 @@ export default {
         this.es = null
       }
     },
-    integrateMessage(m) {
+  integrateMessage(m) {
       // Normalize similar to server mapping: determine id, type, content
       const id = m.uuid || (m.message && m.message.id) || `i_${Date.now()}`
       let rawType = m.type
@@ -113,7 +116,7 @@ export default {
         let assigned = null
         if (m.parentUuid) assigned = this.users.find(u => u.id === m.parentUuid)
         if (!assigned && this.users.length > 0) assigned = this.users[this.users.length - 1]
-        const assistantOut = { id, content, timestamp: m.timestamp, raw: m }
+  const assistantOut = { id, content, timestamp: m.timestamp, raw: m }
         if (assigned) {
           const arr = this.mapping[assigned.id] || []
           arr.push(assistantOut)
@@ -127,6 +130,8 @@ export default {
       }
     },
     selectUser(u) { this.selectedUser = u }
+      ,
+      // preview/expand logic removed: assistant messages render fully by default
   }
 }
 </script>
