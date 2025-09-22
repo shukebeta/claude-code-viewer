@@ -5,10 +5,14 @@
       <div class="col projects-col">
         <Projects @select-project="onSelectProject" />
       </div>
-      <div class="col sessions-col">
-        <Sessions v-if="project" :project="project" @select-session="onSelectSession" />
-      </div>
       <main class="main">
+        <div class="main-top">
+          <details ref="sessionsDetails" open class="sessions-dropdown" v-if="project">
+            <summary class="sessions-summary">{{ sessionFile ? sessionName : `Sessions for ${project.name}` }}</summary>
+            <Sessions :project="project" @select-session="onSelectSession" />
+          </details>
+          <div></div>
+        </div>
         <TwoColumnViewer v-if="sessionFile" :file="sessionFile" />
         <div v-else class="placeholder">Select a session to view</div>
       </main>
@@ -26,6 +30,14 @@ export default {
   data() {
     return { project: null, sessionFile: null }
   },
+  computed: {
+    sessionName() {
+      if (!this.sessionFile) return ''
+      // show last segment of file path as friendly name
+      const parts = (this.sessionFile || '').split('/')
+      return parts[parts.length - 1]
+    }
+  },
   methods: {
     onSelectProject(p) {
       this.project = p
@@ -33,6 +45,11 @@ export default {
     },
     onSelectSession(file) {
       this.sessionFile = file
+      // auto-close the sessions dropdown so it no longer occupies space
+      try {
+        const d = this.$refs.sessionsDetails
+        if (d && typeof d.open !== 'undefined') d.open = false
+      } catch (e) { /* ignore */ }
     }
   }
 }
@@ -44,8 +61,10 @@ export default {
 .layout { display: flex; gap: 16px; flex: 1; min-height: 0 }
 .col { padding: 8px; box-sizing: border-box; min-height: 0 }
 .projects-col { width: 260px; border-right: 1px solid #eee }
-.sessions-col { width: 320px; border-right: 1px solid #eee }
-.main { flex: 1; padding-left: 12px; min-width: 0; min-height: 0 }
+.main { flex: 1; padding-left: 12px; min-width: 0; min-height: 0; display: flex; flex-direction: column }
+.main-top { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 8px }
+.sessions-dropdown { width: 420px; background: var(--card); border: 1px solid #eee; border-radius: 6px; padding: 8px; margin-right: 12px; align-self: flex-start }
+.sessions-summary { font-weight: 600; cursor: pointer; padding: 4px 0 }
 .col, .main { overflow: auto }
 .placeholder { color: #666 }
 </style>
