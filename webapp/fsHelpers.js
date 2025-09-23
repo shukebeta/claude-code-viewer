@@ -134,9 +134,26 @@ async function getProjects() {
         const projectPath = path.join(CLAUDE_PROJECTS_PATH, entry.name)
         const sessions = await fs.readdir(projectPath)
         const sessionFiles = sessions.filter(f => f.endsWith('.jsonl'))
+        // Determine most-recent session mtime for lastUpdated
+        let lastUpdated = null
+        for (const f of sessionFiles) {
+          try {
+            const stats = await fs.stat(path.join(projectPath, f))
+            if (!lastUpdated || stats.mtime > lastUpdated) lastUpdated = stats.mtime
+          } catch (e) {
+            // ignore missing files
+          }
+        }
+
         // Use resolved project path as display name (matches electron resolver)
         const displayName = resolveProjectPath(entry.name)
-        projects.push({ id: entry.name, name: displayName, path: projectPath, sessionCount: sessionFiles.length })
+        projects.push({
+          id: entry.name,
+          name: displayName,
+          path: projectPath,
+          sessionCount: sessionFiles.length,
+          lastUpdated: lastUpdated ? lastUpdated.toISOString() : undefined
+        })
       }
     }
     return projects

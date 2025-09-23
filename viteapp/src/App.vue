@@ -3,7 +3,7 @@
     <h1>Claude Vite App</h1>
     <div class="layout">
       <div class="col projects-col">
-        <Projects @select-project="onSelectProject" />
+        <Projects :selected="project" @select-project="onSelectProject" />
       </div>
       <main class="main">
         <div class="main-top">
@@ -88,7 +88,7 @@ export default {
 .app-root h1 { margin: 12px 16px }
 .layout { display: flex; gap: 16px; flex: 1; min-height: 0 }
 .col { padding: 8px; box-sizing: border-box; min-height: 0 }
-.projects-col { width: 260px; border-right: 1px solid #eee }
+.projects-col { width: 260px; border-right: 1px solid rgba(2,6,23,0.04); background: linear-gradient(180deg, rgba(250,250,252,0.8), rgba(244,247,250,0.6)); }
 .main { flex: 1; padding-left: 12px; min-width: 0; min-height: 0; display: flex; flex-direction: column }
 .main-top { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 8px }
 .sessions-dropdown { width: 630px; background: var(--card); border: 1px solid #eee; border-radius: 6px; padding: 8px; margin-right: 12px; align-self: flex-start }

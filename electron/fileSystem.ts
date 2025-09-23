@@ -7,6 +7,7 @@ export interface Project {
   name: string
   path: string
   sessionCount: number
+  lastUpdated?: string
 }
 
 export interface Session {
@@ -42,14 +43,25 @@ export async function getProjects(): Promise<Project[]> {
         const projectPath = join(CLAUDE_PROJECTS_PATH, entry.name)
         const sessions = await fs.readdir(projectPath)
         const sessionFiles = sessions.filter(f => f.endsWith('.jsonl'))
-        
+        // Determine most-recent session mtime for lastUpdated
+        let lastUpdated: Date | undefined
+        for (const f of sessionFiles) {
+          try {
+            const stats = await fs.stat(join(projectPath, f))
+            if (!lastUpdated || stats.mtime > lastUpdated) lastUpdated = stats.mtime
+          } catch (e) {
+            // ignore
+          }
+        }
+
         // Restore exact path
         const resolvedPath = resolveProjectPath(entry.name)
-        
+
         projects.push({
           name: resolvedPath,
           path: projectPath,
-          sessionCount: sessionFiles.length
+          sessionCount: sessionFiles.length,
+          lastUpdated: lastUpdated ? lastUpdated.toISOString() : undefined
         })
       }
     }
