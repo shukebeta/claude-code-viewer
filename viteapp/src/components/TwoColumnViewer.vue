@@ -17,18 +17,22 @@
       </ul>
     </div>
     <div class="right">
-      <h3>Assistant Replies</h3>
-      <div v-if="!selectedUser">Select a user message</div>
-      <ul v-else>
-        <li v-for="a in mapping[selectedUser.id] || []" :key="a.id" class="assistant-item">
-          <div class="assistant-card card" :class="{ muted: a.muted }" style="position:relative">
-            <button v-if="!a._noCopy && !a.muted" class="copy-btn" :class="{ copied: a._copied }" @click.prevent="copyReply(a)" :title="a._copied ? 'Copied' : 'Copy reply'">
-              <svg v-if="!a._copied" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-              <svg v-else xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
-            </button>
+      <h3>Conversation</h3>
+      <div v-if="allMessages.length === 0">No messages</div>
+      <ul>
+  <li v-for="(m, idx) in allMessages" :key="m.id || idx" :id="`msg-${m.id || idx}`" class="assistant-item" :class="{ 'flash': m._flash }" :data-display="m.displayType">
+            <div class="assistant-card card" :class="{ muted: m.muted }" style="position:relative">
             <div class="assistant-full">
-              <MessageRenderer :content="a.content" />
-              <div v-if="a.muted" class="muted-note">- user interruption -</div>
+              <div class="copy-group">
+                <button class="copy-btn text-copy" :class="{ copied: m._copiedText }" @click.prevent="copyText(m)" :title="m._copiedText ? 'Copied text' : 'Copy text'">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><rect x="8" y="3" width="13" height="13" rx="2" ry="2"/></svg>
+                </button>
+                <button class="copy-btn raw-copy" :class="{ copied: m._copiedRaw }" @click.prevent="copyRaw(m)" :title="m._copiedRaw ? 'Copied raw' : 'Copy source JSON'">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16 20V4a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v14"/></svg>
+                </button>
+              </div>
+              <MessageRenderer :content="m.content" :showRawCopy="false" />
+              <div v-if="m.muted" class="muted-note">- user interruption -</div>
             </div>
           </div>
         </li>
@@ -44,7 +48,7 @@ export default {
   components: { MessageRenderer },
   props: ['file'],
   data() {
-    return { users: [], mapping: {}, loading: false, selectedUser: null, es: null }
+    return { users: [], mapping: {}, allMessages: [], loading: false, selectedUser: null, es: null }
   },
   async mounted() { await this.load() },
   watch: { file: { immediate: true, handler() { this.load() } } },
@@ -96,8 +100,10 @@ export default {
           })
           if (kept.length > 0) cleaned[k] = kept
         }
-        this.mapping = cleaned
-        this.selectedUser = null
+  this.mapping = cleaned
+  this.selectedUser = null
+  // build the flat ordered message stream for right-side full view
+  this.rebuildAllMessages()
         // setup SSE
         this.cleanupEventSource()
         try {
@@ -209,7 +215,29 @@ export default {
           arr.push(assistantOut)
           this.mapping[key] = arr
         }
+        // rebuild flat stream after integrating
+        this.rebuildAllMessages()
       }
+    },
+    rebuildAllMessages() {
+      const out = []
+      // include any orphaned assistant messages first
+      if (this.mapping['__no_user__']) {
+        for (const a of this.mapping['__no_user__']) {
+          const content = a.content || a.preview || (a.raw ? (typeof a.raw === 'string' ? a.raw : JSON.stringify(a.raw)) : '')
+          out.push(Object.assign({ displayType: 'assistant', content }, a))
+        }
+      }
+      for (const u of this.users) {
+        const ucontent = u.content || u.preview || ''
+        out.push(Object.assign({ displayType: 'user', content: ucontent }, u))
+        const replies = this.mapping[u.id] || []
+        for (const a of replies) {
+          const content = a.content || a.preview || (a.raw ? (typeof a.raw === 'string' ? a.raw : JSON.stringify(a.raw)) : '')
+          out.push(Object.assign({ displayType: 'assistant', content }, a))
+        }
+      }
+      this.allMessages = out
     },
     isSkippable(text) {
       if (!text) return false
@@ -224,30 +252,46 @@ export default {
       const s = String(text).trim()
       return s === 'Request interrupted by user' || s.includes('Request interrupted by user')
     },
-  selectUser(u) { if (u && u.nonInteractive) return; this.selectedUser = u }
-      ,
-    async copyReply(a) {
-      // optimistic feedback: set copied state immediately
-      try {
-  const txt = this.extractText(a.content)
-  a._copied = true
-        // attempt standard clipboard API
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-          try {
-            await navigator.clipboard.writeText(txt)
-          } catch (err) {
-            // fallback to legacy approach
-            this.fallbackCopyTextToClipboard(txt)
-          }
-        } else {
-          this.fallbackCopyTextToClipboard(txt)
+    selectUser(u) {
+      if (u && u.nonInteractive) return
+      this.selectedUser = u
+      this.$nextTick(() => {
+        const id = `msg-${u.id}`
+        const el = document.getElementById(id)
+        if (!el) return
+
+        // Highlight the user message element itself (or its internal card) so
+        // bookmarks behave like left-side entries even if no assistant reply exists.
+        const card = el.querySelector('.assistant-card') || el
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        if (card) {
+          card.classList.add('flash')
+          setTimeout(() => card.classList.remove('flash'), 2600)
         }
-      } catch (e) {
-  console.error('copy failed', e)
-  a._copied = false
-      } finally {
-        setTimeout(() => { a._copied = false }, 1500)
-      }
+      })
+    }
+      ,
+    // removed legacy single-copy method; using copyText/copyRaw instead
+    async copyText(a) {
+      try {
+        const txt = this.extractText(a.content)
+        a._copiedText = true
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          try { await navigator.clipboard.writeText(txt) } catch (err) { this.fallbackCopyTextToClipboard(txt) }
+        } else this.fallbackCopyTextToClipboard(txt)
+      } catch (e) { console.error('copyText failed', e); a._copiedText = false }
+      finally { setTimeout(() => { a._copiedText = false }, 1500) }
+    },
+    async copyRaw(a) {
+      try {
+        const raw = a.raw || a.content || a
+        const txt = typeof raw === 'string' ? raw : JSON.stringify(raw, null, 2)
+        a._copiedRaw = true
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          try { await navigator.clipboard.writeText(txt) } catch (err) { this.fallbackCopyTextToClipboard(txt) }
+        } else this.fallbackCopyTextToClipboard(txt)
+      } catch (e) { console.error('copyRaw failed', e); a._copiedRaw = false }
+      finally { setTimeout(() => { a._copiedRaw = false }, 1500) }
     },
     extractText(c) {
       if (!c) return ''
@@ -303,11 +347,20 @@ pre { white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere; ma
 .right ul li.assistant-item + li.assistant-item { border-top: 1px dashed rgba(15,23,36,0.06); margin-top: 6px; padding-top: 6px; }
 
 /* assistant card copy button */
-.assistant-card { padding: 8px; position: relative }
-.copy-btn { position: absolute; top: 6px; right: 6px; border: none; background: rgba(255,255,255,0.02); color: inherit; padding:6px; border-radius:6px; cursor:pointer }
+.assistant-card { padding: 34px 8px 8px 8px; position: relative }
+.copy-btn { display: inline-flex; align-items: center; justify-content: center; border: none; background: rgba(255,255,255,0.02); color: inherit; padding:6px; border-radius:6px; cursor:pointer }
 .copy-btn svg { display:block }
 .copy-btn:hover { background: rgba(255,255,255,0.04) }
 .copy-btn.copied { background: rgba(52,211,153,0.16); color: var(--success) }
+
+.copy-group .copy-btn { position: relative; top: 0; right: 0; padding:4px; border-radius:6px; background: rgba(255,255,255,0.02) }
+.copy-group .copy-btn svg { width:12px; height:12px }
+.copy-group .copy-btn:hover { background: rgba(255,255,255,0.04) }
+.copy-group { position: absolute; top: 6px; right: 8px; display: flex; gap: 6px; opacity: 0; transform: translateY(-4px); transition: opacity 150ms ease, transform 150ms ease; z-index: 3 }
+.assistant-item:hover .copy-group, .assistant-card:hover .copy-group { opacity: 1; transform: translateY(0) }
+.assistant-card { padding: 34px 8px 8px 8px; position: relative }
 .assistant-card.muted { opacity: 0.7; background: #f3f4f6 }
 .muted-note { color: #666; font-style: italic; margin-top: 6px; font-size: 13px }
+.flash { animation: flash-bg 2.2s ease-in-out }
+@keyframes flash-bg { 0% { background: rgba(99,102,241,0.18) } 60% { background: transparent } 100% { background: transparent } }
 </style>

@@ -9,7 +9,8 @@
   },
   "dependencies": {
     "vue": "^3.4.0",
-    "marked": "^5.1.1"
+    "marked": "^5.1.1",
+    "prismjs": "^1.29.0"
   },
   "devDependencies": {
     "vite": "^5.0.0",

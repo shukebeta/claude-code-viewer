@@ -1,6 +1,6 @@
 <template>
   <div class="message-renderer">
-    <button v-if="rawJson" class="copy-json" @click="copyRaw" :title="copied ? 'Copied' : 'Copy original JSON'">
+  <button v-if="rawJson && showRawCopy" class="copy-json" @click="copyRaw" :title="copied ? 'Copied' : 'Copy original JSON'">
       ⧉
       <span v-if="copied" class="copied-label">Copied</span>
     </button>
@@ -13,10 +13,10 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, nextTick, createApp } from 'vue'
 import { marked } from 'marked'
 
-const props = defineProps({ content: { type: [Object, Array, String], required: true } })
+const props = defineProps({ content: { type: [Object, Array, String], required: true }, showRawCopy: { type: Boolean, default: true } })
 const emit = defineEmits([])
 
 
@@ -41,10 +41,10 @@ function renderCode(c) {
   const lines = str.split('\n').length
   const mustCollapse = lines > 6 || str.length > 400
   const escaped = escapeHtml(str)
-  if (!mustCollapse) return `<pre class="code-block"><code>${escaped}</code></pre>`
+  if (!mustCollapse) return `<div class="__code_placeholder" data-lang="${escapeHtml('')}" data-raw="${escapeHtml(str)}"></div>`
   const preStyle = 'max-height:3.6em;overflow:hidden;transition:max-height 0.18s ease'
   const btnStyle = 'display:inline-block;margin-top:6px;background:transparent;border:none;color:#0a66ff;cursor:pointer;padding:2px 6px;font-size:13px'
-  return `<div class="read-container"><pre class="code-block read-collapsed" style="${preStyle}"><code>${escaped}</code></pre><button class="read-toggle" data-full="false" style="${btnStyle}">Show more</button></div>`
+  return `<div class="read-container"><div class="__code_placeholder" data-lang="${escapeHtml('')}" data-raw="${escapeHtml(str)}" style="max-height:3.6em;overflow:hidden"></div><div style="display:flex;gap:8px;margin-top:6px"><button class="read-toggle" data-full="false" style="${btnStyle}">Show more</button><button class="copy-code-btn" style="${btnStyle}">Copy</button></div></div>`
 }
 
 function renderToolResult(c) {
@@ -57,10 +57,10 @@ function renderToolResult(c) {
     const str = pretty
     const lines = str.split('\n').length
     const mustCollapse = lines > 6 || str.length > 400
-    if (!mustCollapse) return `<pre class="tool-result">${pretty}</pre>`
-    const preStyle = 'max-height:3.6em;overflow:hidden;transition:max-height 0.18s ease'
-    const btnStyle = 'display:inline-block;margin-top:6px;background:transparent;border:none;color:#0a66ff;cursor:pointer;padding:2px 6px;font-size:13px'
-    return `<div class="read-container"><pre class="tool-result read-collapsed" style="${preStyle}">${pretty}</pre><button class="read-toggle" data-full="false" style="${btnStyle}">Show more</button></div>`
+  if (!mustCollapse) return `<div class="__code_placeholder" data-lang="json" data-raw="${escapeHtml(JSON.stringify(parsed, null, 2))}"></div>`
+  const preStyle = 'max-height:3.6em;overflow:hidden;transition:max-height 0.18s ease'
+  const btnStyle = 'display:inline-block;margin-top:6px;background:transparent;border:none;color:#0a66ff;cursor:pointer;padding:2px 6px;font-size:13px'
+  return `<div class="read-container"><div class="__code_placeholder" data-lang="json" data-raw="${escapeHtml(JSON.stringify(parsed, null, 2))}" style="max-height:3.6em;overflow:hidden"></div><div style="display:flex;gap:8px;margin-top:6px"><button class="read-toggle" data-full="false" style="${btnStyle}">Show more</button><button class="copy-code-btn" style="${btnStyle}">Copy</button></div></div>`
   } catch (e) {
     // fallback: if it looks like code prefer a code block, else render as markdown (but escape HTML first)
     const str = String(v)
@@ -68,23 +68,23 @@ function renderToolResult(c) {
     const lines = str.split('\n').length
     const mustCollapse = lines > 6 || str.length > 400
     if (isCodeLike(str)) {
-      if (!mustCollapse) return `<pre class="tool-result"><code>${escaped}</code></pre>`
-      const preStyle = 'max-height:3.6em;overflow:hidden;transition:max-height 0.18s ease'
-      const btnStyle = 'display:inline-block;margin-top:6px;background:transparent;border:none;color:#0a66ff;cursor:pointer;padding:2px 6px;font-size:13px'
-      return `<div class="read-container"><pre class="tool-result read-collapsed" style="${preStyle}"><code>${escaped}</code></pre><button class="read-toggle" data-full="false" style="${btnStyle}">Show more</button></div>`
+  if (!mustCollapse) return `<div class="__code_placeholder" data-lang="" data-raw="${escapeHtml(str)}"></div>`
+  const preStyle = 'max-height:3.6em;overflow:hidden;transition:max-height 0.18s ease'
+  const btnStyle = 'display:inline-block;margin-top:6px;background:transparent;border:none;color:#0a66ff;cursor:pointer;padding:2px 6px;font-size:13px'
+  return `<div class="read-container"><div class="__code_placeholder" data-lang="" data-raw="${escapeHtml(str)}" style="max-height:3.6em;overflow:hidden"></div><div style="display:flex;gap:8px;margin-top:6px"><button class="read-toggle" data-full="false" style="${btnStyle}">Show more</button><button class="copy-code-btn" style="${btnStyle}">Copy</button></div></div>`
     }
     if (str.includes('\n') || /\[[ x\-]\]|#{1,6} /m.test(str)) {
       // if markdown-like, render full markdown but still collapse if long
       const rendered = marked.parse(escaped)
-      if (!mustCollapse) return `<div class="tool-result">${rendered}</div>`
-      const preStyle = 'max-height:3.6em;overflow:hidden;transition:max-height 0.18s ease'
-      const btnStyle = 'display:inline-block;margin-top:6px;background:transparent;border:none;color:#0a66ff;cursor:pointer;padding:2px 6px;font-size:13px'
-      return `<div class="read-container"><div class="tool-result read-collapsed" style="${preStyle}">${rendered}</div><button class="read-toggle" data-full="false" style="${btnStyle}">Show more</button></div>`
+  if (!mustCollapse) return `<div class="tool-result">${rendered}</div>`
+  const preStyle = 'max-height:3.6em;overflow:hidden;transition:max-height 0.18s ease'
+  const btnStyle = 'display:inline-block;margin-top:6px;background:transparent;border:none;color:#0a66ff;cursor:pointer;padding:2px 6px;font-size:13px'
+  return `<div class="read-container"><div class="tool-result read-collapsed" style="${preStyle}">${rendered}</div><div style="display:flex;gap:8px;margin-top:6px"><button class="read-toggle" data-full="false" style="${btnStyle}">Show more</button><button class="copy-code-btn" style="${btnStyle}">Copy</button></div></div>`
     }
-    if (!mustCollapse) return `<pre class="tool-result">${escaped}</pre>`
-    const preStyle = 'max-height:3.6em;overflow:hidden;transition:max-height 0.18s ease'
-    const btnStyle = 'display:inline-block;margin-top:6px;background:transparent;border:none;color:#0a66ff;cursor:pointer;padding:2px 6px;font-size:13px'
-    return `<div class="read-container"><pre class="tool-result read-collapsed" style="${preStyle}">${escaped}</pre><button class="read-toggle" data-full="false" style="${btnStyle}">Show more</button></div>`
+  if (!mustCollapse) return `<pre class="tool-result">${escaped}</pre>`
+  const preStyle = 'max-height:3.6em;overflow:hidden;transition:max-height 0.18s ease'
+  const btnStyle = 'display:inline-block;margin-top:6px;background:transparent;border:none;color:#0a66ff;cursor:pointer;padding:2px 6px;font-size:13px'
+  return `<div class="read-container"><pre class="tool-result read-collapsed" style="${preStyle}">${escaped}</pre><div style="display:flex;gap:8px;margin-top:6px"><button class="read-toggle" data-full="false" style="${btnStyle}">Show more</button><button class="copy-code-btn" style="${btnStyle}">Copy</button></div></div>`
   }
 }
 
@@ -166,7 +166,9 @@ function contentToHtml(c) {
     }
     return escapeHtml(c)
   }
-  if (!c || typeof c !== 'object') return escapeHtml(String(c))
+  // treat null/undefined as empty
+  if (c == null) return ''
+  if (typeof c !== 'object') return escapeHtml(String(c))
 
   // Extract a flat textual representation for special-case checks
   const flat = (c && ((c.text && String(c.text)) || (c.content && typeof c.content === 'string' && c.content) || (c.message && (c.message.content || c.message.text)))) || ''
@@ -298,7 +300,65 @@ onMounted(() => {
       btn.textContent = 'Show less'
     }
   })
+  // After mount, replace any data-code blocks with a Vue CodeBlock instance rendered in-place
+  const replaceCodeBlocks = async () => {
+    // Lazy load CodeBlock component to avoid circular deps
+    try {
+      const mod = await import('./CodeBlock.vue')
+      const CodeBlockComp = mod.default
+      // Find all placeholders
+      const placeholders = document.querySelectorAll('.__code_placeholder')
+      placeholders.forEach((ph) => {
+        const language = ph.getAttribute('data-lang') || ''
+        const raw = ph.getAttribute('data-raw') || ''
+        // Create a mounting div
+        const mount = document.createElement('div')
+        ph.parentNode?.replaceChild(mount, ph)
+        // mount the component
+        try {
+          const app = createApp(CodeBlockComp, { language, value: raw })
+          if (mount) app.mount(mount)
+        } catch (e) {
+          // ignore mount errors
+        }
+      })
+    } catch (e) {
+      // ignore if dynamic import fails
+    }
+  }
+
+  // Observe DOM changes to replace placeholders inserted via v-html
+  const obs = new MutationObserver(async () => {
+    await nextTick()
+    replaceCodeBlocks()
+  })
+  obs.observe(document.body, { childList: true, subtree: true })
 })
+  // delegated handler for copying code blocks (buttons with .copy-code-btn)
+  document.addEventListener('click', (e) => {
+    const btn = e.target && (e.target.closest && e.target.closest('.copy-code-btn'))
+    if (!btn) return
+    const container = btn.closest('.read-container') || btn.closest('.message-renderer')
+    if (!container) return
+    // find nearest code or pre element
+    const codeEl = container.querySelector('code') || container.querySelector('pre')
+    if (!codeEl) return
+    const text = codeEl.textContent || codeEl.innerText || ''
+    // copy to clipboard with fallback
+    (async () => {
+      try { await navigator.clipboard.writeText(text) } catch (err) {
+        const ta = document.createElement('textarea')
+        ta.value = text
+        document.body.appendChild(ta)
+        ta.select()
+        document.execCommand('copy')
+        document.body.removeChild(ta)
+      }
+    })()
+    const old = btn.textContent
+    btn.textContent = 'Copied'
+    setTimeout(() => { btn.textContent = old }, 1500)
+  })
 
 const isTodoWrite = computed(() => {
   const c = props.content
