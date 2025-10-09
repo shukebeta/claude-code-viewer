@@ -106,6 +106,44 @@ function renderMarkdown(c) {
   return marked.parse(escapeHtml(String(src)))
 }
 
+// Shared custom markdown renderer with inline styles (for ExitPlanMode and thinking blocks)
+function createCustomMarkdownRenderer() {
+  const renderer = new marked.Renderer()
+  
+  renderer.heading = (text, level) => {
+    const sizes = ['1.5em', '1.3em', '1.1em']
+    const size = sizes[level - 1] || '1em'
+    return `<h${level} style="margin:0.5rem 0;font-size:${size};font-weight:600">${text}</h${level}>\n`
+  }
+  
+  renderer.paragraph = (text) => {
+    return `<p style="margin:0.3rem 0;line-height:1.5">${text}</p>\n`
+  }
+  
+  renderer.list = (body, ordered) => {
+    const tag = ordered ? 'ol' : 'ul'
+    return `<${tag} style="margin:0.3rem 0;padding-left:1.5rem">${body}</${tag}>\n`
+  }
+  
+  renderer.listitem = (text) => {
+    return `<li style="margin:0.2rem 0">${text}</li>\n`
+  }
+  
+  renderer.hr = () => {
+    return `<hr style="margin:0.5rem 0;border:none;border-top:1px solid rgba(0,0,0,0.1)">\n`
+  }
+  
+  renderer.codespan = (code) => {
+    return `<code style="font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,'Courier New',monospace;font-size:0.9em">${code}</code>`
+  }
+  
+  renderer.code = (code, language) => {
+    return `<pre style="margin:0.4rem 0;background:rgba(0,0,0,0.05);padding:8px;border-radius:4px"><code style="font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,'Courier New',monospace;font-size:0.9em">${code}</code></pre>\n`
+  }
+  
+  return renderer
+}
+
 function renderTodoWrite(c) {
   // Expecting structure like: { input: { todos: [ { id, content, status } ] } }
   const todos = (c && c.input && c.input.todos) || (c && c.todos) || null
@@ -184,6 +222,24 @@ function contentToHtml(c) {
   if ((c.name === 'TodoWrite' || c.toolName === 'TodoWrite' || (c.message && c.message.name === 'TodoWrite')) ) {
     return renderTodoWrite(c)
   }
+  // thinking block
+  if (c.type === 'thinking' || t === 'thinking') {
+    const thinkingText = c.thinking || ''
+    if (!thinkingText) return ''
+    
+    const renderer = createCustomMarkdownRenderer()
+    const thinkingHtml = marked.parse(escapeHtml(String(thinkingText)), { renderer })
+    return '<div class="thinking-block">' + thinkingHtml + '</div>'
+  }
+  // ExitPlanMode tool
+  if ((c.name === 'ExitPlanMode' || c.toolName === 'ExitPlanMode' || (c.message && c.message.name === 'ExitPlanMode'))) {
+    const plan = (c.input && c.input.plan) || (c.plan) || ''
+    if (!plan) return ''
+    
+    const renderer = createCustomMarkdownRenderer()
+    const planHtml = marked.parse(escapeHtml(String(plan)), { renderer })
+    return '<div class="exit-plan-mode">' + planHtml + '</div>'
+  }
   // read tool: auto-expand and show code block
   if ((c.name === 'Read' || c.toolName === 'Read' || (c.action && c.action === 'read') || (c.message && c.message.name === 'Read') || (c.type === 'read'))) {
     return renderReadTool(c)
@@ -245,9 +301,21 @@ function isCodeLike(text) {
 }
 
 // Raw JSON for copy button: either the object or JSON contained in text
+// For ExitPlanMode, return the plan text instead of the full JSON
 const rawJson = computed(() => {
   const c = props.content
   if (!c) return null
+  
+  // Special case for ExitPlanMode: copy the plan text
+  
+  // Special case for thinking block: copy the thinking text
+  if (c.type === 'thinking') {
+    return c.thinking || null
+  }
+  if (c.name === 'ExitPlanMode' || c.toolName === 'ExitPlanMode' || (c.message && c.message.name === 'ExitPlanMode')) {
+    return (c.input && c.input.plan) || (c.plan) || null
+  }
+  
   if (typeof c === 'object') {
     try { return JSON.stringify(c, null, 2) } catch { return null }
   }
@@ -422,4 +490,32 @@ const systemNote = computed(() => {
 .read-collapsed.read-expanded { max-height: none }
 .read-toggle { display: inline-block; margin-top: 6px; background: transparent; border: none; color: #0a66ff; cursor: pointer; padding: 2px 6px; font-size: 13px }
 .read-toggle:hover { text-decoration: underline }
+.exit-plan-mode { background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 6px; padding: 12px; margin: 8px 0 }
+.exit-plan-mode h1, .exit-plan-mode h2, .exit-plan-mode h3 { color: rgba(59, 130, 246, 0.9); margin: 0.5rem 0 }
+.exit-plan-mode p { margin: 0.3rem 0; line-height: 1.5 }
+.exit-plan-mode ul, .exit-plan-mode ol { margin: 0.3rem 0; padding-left: 1.5rem }
+.exit-plan-mode li { margin: 0.2rem 0 }
+.exit-plan-mode pre { margin: 0.4rem 0; background: rgba(0, 0, 0, 0.05); padding: 8px; border-radius: 4px }
+.exit-plan-mode code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, 'Courier New', monospace; font-size: 0.9em }
+.thinking-block { background: rgba(168, 85, 247, 0.1); border: 1px solid rgba(168, 85, 247, 0.2); border-radius: 6px; padding: 12px; margin: 8px 0 }
+.thinking-block h1, .thinking-block h2, .thinking-block h3 { color: rgba(168, 85, 247, 0.9); margin: 0.5rem 0 }
+.thinking-block p { margin: 0.3rem 0; line-height: 1.5 }
+.thinking-block ul, .thinking-block ol { margin: 0.3rem 0; padding-left: 1.5rem }
+.thinking-block li { margin: 0.2rem 0 }
+.thinking-block pre { margin: 0.4rem 0; background: rgba(0, 0, 0, 0.05); padding: 8px; border-radius: 4px }
+.thinking-block code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, 'Courier New', monospace; font-size: 0.9em }
+</style>
+
+<style>
+/* Unscoped styles for ExitPlanMode and thinking block markdown (injected via v-html) */
+.exit-plan-mode p { margin: 0.3rem 0 !important; line-height: 1.5 !important; }
+.exit-plan-mode ul, .exit-plan-mode ol { margin: 0.3rem 0 !important; padding-left: 1.5rem !important; }
+.exit-plan-mode li { margin: 0.2rem 0 !important; }
+.exit-plan-mode pre { margin: 0.4rem 0 !important; background: rgba(0, 0, 0, 0.05) !important; padding: 8px !important; border-radius: 4px !important; }
+.exit-plan-mode code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, 'Courier New', monospace !important; font-size: 0.9em !important; }
+.thinking-block p { margin: 0.3rem 0 !important; line-height: 1.5 !important; }
+.thinking-block ul, .thinking-block ol { margin: 0.3rem 0 !important; padding-left: 1.5rem !important; }
+.thinking-block li { margin: 0.2rem 0 !important; }
+.thinking-block pre { margin: 0.4rem 0 !important; background: rgba(0, 0, 0, 0.05) !important; padding: 8px !important; border-radius: 4px !important; }
+.thinking-block code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, 'Courier New', monospace !important; font-size: 0.9em !important; }
 </style>

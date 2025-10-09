@@ -1,4 +1,6 @@
 import React, { useState } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { BaseToolComponent } from './BaseToolComponent'
 import { BashToolComponent } from './BashToolComponent'
 import { FileToolComponent } from './FileToolComponent'
@@ -64,6 +66,49 @@ export const ToolRenderer: React.FC<ToolRendererProps> = ({
   }
 
   // Web tools
+
+  // ExitPlanMode tool - renders plan as markdown
+  if (toolName === 'ExitPlanMode') {
+    return (
+      <BaseToolComponent
+        toolName={toolName}
+        parameters={parameters}
+        result={result}
+        error={error}
+        compact={compact}
+      >
+        {parameters?.plan && (
+          <div style={{
+            padding: '12px',
+            background: 'rgba(59, 130, 246, 0.1)',
+            border: '1px solid rgba(59, 130, 246, 0.2)',
+            borderRadius: '6px',
+            marginTop: '8px'
+          }}>
+            <div style={{ 
+              fontSize: '11px', 
+              color: 'rgba(59, 130, 246, 0.9)',
+              marginBottom: '8px',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              fontWeight: 600
+            }}>
+              Plan
+            </div>
+            <div style={{
+              fontSize: '13px',
+              lineHeight: '1.6',
+              color: 'var(--foreground)'
+            }}>
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {parameters.plan}
+              </ReactMarkdown>
+            </div>
+          </div>
+        )}
+      </BaseToolComponent>
+    )
+  }
   if (['WebSearch', 'WebFetch'].includes(toolName)) {
     return (
       <WebToolComponent

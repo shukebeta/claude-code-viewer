@@ -300,6 +300,14 @@ export default {
       if (typeof c === 'object') {
         if (c.text) return c.text
         if (c.content && typeof c.content === 'string') return c.content
+        // ExitPlanMode: extract the plan text
+    // thinking block: extract the thinking text
+    if (c.type === 'thinking') {
+      return c.thinking || ''
+    }
+        if (c.name === 'ExitPlanMode' || c.toolName === 'ExitPlanMode' || (c.message && c.message.name === 'ExitPlanMode')) {
+          return (c.input && c.input.plan) || c.plan || ''
+        }
         if (c.input && c.input.todos) return c.input.todos.map(t => (t.status ? `[${t.status}] ` : '') + (t.content||t.text||t.title||'')).join('\n')
         if (c.result && c.result.content) return typeof c.result.content === 'string' ? c.result.content : JSON.stringify(c.result.content)
         return JSON.stringify(c)
